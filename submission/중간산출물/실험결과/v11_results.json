@@ -1,0 +1,43 @@
+{
+  "version": "v11_f3netlite_df40",
+  "best_val_auc": 1.0,
+  "test_df40": {
+    "name": "TEST_V11",
+    "loss": 0.0026364243284519796,
+    "acc": 0.9991040931743099,
+    "f1": 0.9993385149660989,
+    "bal_acc": 0.9992933808041895,
+    "auc": 0.9999994833343614
+  },
+  "cross_eval": {
+    "test_ff": {
+      "name": "test_ff",
+      "loss": 0.35848533075595385,
+      "acc": 0.15026201868307132,
+      "f1": 0.0,
+      "bal_acc": 0.4998736735725114,
+      "auc": 0.4907491071336629
+    },
+    "test_dfdc": {
+      "name": "test_dfdc",
+      "loss": 0.3631116127850168,
+      "acc": 0.10704945316214931,
+      "f1": 0.0001331114808652246,
+      "bal_acc": 0.500033280085197,
+      "auc": 0.5810728944799433
+    }
+  },
+  "model": "F3NetLite (FAD 3-band + SE Fusion + Dropout 0.5)",
+  "params_M": 43.997628,
+  "data": "DF40 fake (sd2.1/DiT/SiT/simswap/sadtalker) + FF++ real",
+  "regularization": {
+    "mixup_alpha": 0.2,
+    "label_smoothing": 0.05,
+    "dropout": 0.5
+  },
+  "env": {
+    "torch": "2.8.0+cu128",
+    "cudnn": 91002,
+    "cudnn_enabled": true
+  }
+}

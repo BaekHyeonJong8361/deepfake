@@ -1,0 +1,52 @@
+{
+  "best_composite": 0.9948650232609471,
+  "history": [
+    {
+      "epoch": 1,
+      "val_auc": 0.9999631440972085,
+      "sns_real_acc": 0.9843304843304843,
+      "composite": 0.9905835482371741
+    },
+    {
+      "epoch": 2,
+      "val_auc": 0.9999830709728804,
+      "sns_real_acc": 0.9914529914529915,
+      "composite": 0.9948650232609471
+    },
+    {
+      "epoch": 3,
+      "val_auc": 0.9999709284266429,
+      "sns_real_acc": 0.9729344729344729,
+      "composite": 0.9837490551313408
+    },
+    {
+      "epoch": 4,
+      "val_auc": 0.9999901247341803,
+      "sns_real_acc": 0.9829059829059829,
+      "composite": 0.9897396396372617
+    },
+    {
+      "epoch": 5,
+      "val_auc": 0.9999914347184217,
+      "sns_real_acc": 0.9786324786324786,
+      "composite": 0.9871760610668558
+    },
+    {
+      "epoch": 6,
+      "val_auc": 0.9999898728141339,
+      "sns_real_acc": 0.98005698005698,
+      "composite": 0.9880301371598417
+    },
+    {
+      "epoch": 7,
+      "val_auc": 0.9999946592950159,
+      "sns_real_acc": 0.9700854700854701,
+      "composite": 0.9820491457692884
+    }
+  ],
+  "config": {
+    "base": "/home/t26106/deepfake/saved_models/f3netlite_best_v20_df40_sns_aug.pth",
+    "lr": 1e-05,
+    "sns_oversample": 1.0
+  }
+}

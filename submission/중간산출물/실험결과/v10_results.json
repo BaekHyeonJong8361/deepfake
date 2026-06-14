@@ -1,0 +1,42 @@
+{
+  "version": "v10_freq_only_xception",
+  "best_val_auc": 0.9797388749281452,
+  "test_ff": {
+    "name": "TEST_FF",
+    "loss": 0.02187104296893942,
+    "acc": 0.9202551834130781,
+    "f1": 0.951402388225493,
+    "bal_acc": 0.9239600268316067,
+    "auc": 0.972060490847499
+  },
+  "test_dfdc": {
+    "name": "TEST_DFDC",
+    "loss": 0.01560045133335529,
+    "acc": 0.9369353304802663,
+    "f1": 0.9636805531783795,
+    "bal_acc": 0.937061590344338,
+    "auc": 0.9840164070820022
+  },
+  "cross_gap_auc": -0.011955916234503206,
+  "comparison": {
+    "v7_ff_auc": 0.9659,
+    "v7_dfdc_auc": 0.9878,
+    "v7_gap": -0.0219,
+    "v8_ff_auc": 0.9737,
+    "v8_dfdc_auc": 0.9881,
+    "v8_gap": -0.0144
+  },
+  "model": "FAD + Xception(in_chans=9) + BN + Dropout 0.3 + Linear",
+  "params_M": 21.083028,
+  "regularization": {
+    "mixup_alpha": 0.2,
+    "label_smoothing": 0.05,
+    "dropout": 0.3
+  },
+  "purpose": "Plan B (Triple Ensemble)\uc758 Freq-only \ucd95. v7(RGB) + v10(Freq) + v8/v9(Joint) \uc559\uc0c1\ube14\uc6a9.",
+  "env": {
+    "torch": "2.8.0+cu128",
+    "cudnn": 91002,
+    "cudnn_enabled": true
+  }
+}

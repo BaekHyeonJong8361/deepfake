@@ -1,0 +1,9 @@
+[v37] DINOv2-base Full Fine-tune 시작
+train=350526, val=10629, epochs=15
+backbone_lr=5e-06, head_lr=0.001, batch=32
+EP01 | train_loss=0.9660 | val_loss=1.2362 | val_auc=0.4079 | bb_lr=5.00e-06 | hd_lr=1.00e-03 | 3543s
+  ★ Best 저장 (ep1, AUC=0.4079)
+EP02 | train_loss=0.1011 | val_loss=0.2038 | val_auc=0.9944 | bb_lr=4.94e-06 | hd_lr=9.87e-04 | 3543s
+  ★ Best 저장 (ep2, AUC=0.9944)
+.94e-06 | hd_lr=9.87e-04 | 3543s
+  ★ Best 저장 (ep2, AUC=0.9944)

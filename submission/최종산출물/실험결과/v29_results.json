@@ -1,0 +1,46 @@
+{
+  "best_val_auc": 0.999952689415282,
+  "history": [
+    {
+      "epoch": 1,
+      "val_auc": 0.999952689415282,
+      "val_acc": 0.9959127167248994
+    },
+    {
+      "epoch": 2,
+      "val_auc": 0.9962365664265045,
+      "val_acc": 0.9933416836970137
+    },
+    {
+      "epoch": 3,
+      "val_auc": 0.9996404093257375,
+      "val_acc": 0.9932757597732217
+    },
+    {
+      "epoch": 4,
+      "val_auc": 0.9991697722950124,
+      "val_acc": 0.9940009229349331
+    },
+    {
+      "epoch": 5,
+      "val_auc": 0.9992177378718511,
+      "val_acc": 0.9940009229349331
+    },
+    {
+      "epoch": 6,
+      "val_auc": 0.9994076100108391,
+      "val_acc": 0.9959786406486915
+    },
+    {
+      "epoch": 7,
+      "val_auc": 0.9997039183694404,
+      "val_acc": 0.9959127167248994
+    }
+  ],
+  "config": {
+    "arch": "F3NetLiteV20",
+    "train_csv": "/home/t26106/deepfake/splits_v27/train_v27.csv",
+    "pretrained": "imagenet (from scratch)",
+    "note": "v20 과 동일, train_csv 만 변경 (fifi 7798 추가)"
+  }
+}

@@ -1,0 +1,51 @@
+{
+  "best_val_auc": 0.9999522863432078,
+  "history": [
+    {
+      "epoch": 1,
+      "val_auc": 0.9999490869586181,
+      "val_acc": 0.995319401410772
+    },
+    {
+      "epoch": 2,
+      "val_auc": 0.9999522863432078,
+      "val_acc": 0.9990111411431208
+    },
+    {
+      "epoch": 3,
+      "val_auc": 0.9999077720710049,
+      "val_acc": 0.9940009229349331
+    },
+    {
+      "epoch": 4,
+      "val_auc": 0.9994364044721451,
+      "val_acc": 0.9940009229349331
+    },
+    {
+      "epoch": 5,
+      "val_auc": 0.9998881726913933,
+      "val_acc": 0.9981541301338256
+    },
+    {
+      "epoch": 6,
+      "val_auc": 0.9996224222344231,
+      "val_acc": 0.9970334234293625
+    },
+    {
+      "epoch": 7,
+      "val_auc": 0.9999133646960355,
+      "val_acc": 0.9972971191245303
+    },
+    {
+      "epoch": 8,
+      "val_auc": 0.9978582765333404,
+      "val_acc": 0.9973630430483222
+    }
+  ],
+  "config": {
+    "arch": "EfficientNet-B4",
+    "img_size": 380,
+    "train_csv": "/home/t26106/deepfake/splits_v27/train_v27.csv",
+    "note": "단일 백본, dual-branch 폐기, end-to-end ImageNet pretrained"
+  }
+}

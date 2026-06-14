@@ -1,0 +1,14 @@
+[v29] v20 architecture | more data (fifi included) | from ImageNet pretrained | device=cuda
+/home/t26106/.venv/lib64/python3.9/site-packages/timm/models/_factory.py:138: UserWarning: Mapping deprecated model name xception to current legacy_xception.
+  model = create_fn(
+[v29 Ep  1/30] lr=5.0e-05 | TrainLoss=0.0180 | ValAUC=1.0000 | ValAcc=0.9959
+  ✅ best saved (val_auc=1.0000)
+[v29 Ep  2/30] lr=1.0e-04 | TrainLoss=0.0156 | ValAUC=0.9962 | ValAcc=0.9933
+[v29 Ep  3/30] lr=1.0e-04 | TrainLoss=0.0145 | ValAUC=0.9996 | ValAcc=0.9933
+[v29 Ep  4/30] lr=1.0e-04 | TrainLoss=0.0139 | ValAUC=0.9992 | ValAcc=0.9940
+[v29 Ep  5/30] lr=9.9e-05 | TrainLoss=0.0140 | ValAUC=0.9992 | ValAcc=0.9940
+[v29 Ep  6/30] lr=9.7e-05 | TrainLoss=0.0130 | ValAUC=0.9994 | ValAcc=0.9960
+[v29 Ep  7/30] lr=9.5e-05 | TrainLoss=0.0134 | ValAUC=0.9997 | ValAcc=0.9959
+  ⛔ Early stop
+
+✅ v29 완료. best val AUC=1.0000

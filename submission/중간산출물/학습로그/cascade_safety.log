@@ -1,0 +1,43 @@
+WARNING: All log messages before absl::InitializeLog() is called are written to STDERR
+I0000 00:00:1779095319.305877  463959 gl_context_egl.cc:85] Successfully initialized EGL. Major : 1 Minor: 5
+I0000 00:00:1779095319.350291  464043 gl_context.cc:344] GL version: 3.2 (OpenGL ES 3.2 NVIDIA 580.95.05), renderer: NVIDIA RTX 4500 Ada Generation/PCIe/SSE2
+==============================================================================
+Cascade Safety Analysis (40-sample OOD)
+==============================================================================
+/home/t26106/.venv/lib64/python3.9/site-packages/timm/models/_factory.py:138: UserWarning: Mapping deprecated model name xception to current legacy_xception.
+  model = create_fn(
+INFO: Created TensorFlow Lite XNNPACK delegate for CPU.
+[40개 점수 수집...]
+n=40
+CSV: /home/t26106/deepfake/eval_cascade_v3/per_video_scores.csv
+
+[가장 위험한 REAL (s1 점수 높음 = false positive 위험)]
+  ✓FAKE  s1=0.8100  s2=0.0559  화면 기록 2026-05-14 오후 11.03.42.mov
+  ⚠️REAL  s1=0.6776  s2=0.0311  화면 기록 2026-05-14 오후 10.49.29.mov
+  ⚠️REAL  s1=0.6658  s2=0.0322  화면 기록 2026-05-14 오후 10.46.21.mov
+  ✓FAKE  s1=0.6028  s2=0.3190  화면 기록 2026-05-14 오후 11.06.18.mov
+  ⚠️REAL  s1=0.5911  s2=0.0216  화면 기록 2026-05-12 오후 9.59.30.mov
+  ✓FAKE  s1=0.5856  s2=0.0423  화면 기록 2026-05-12 오후 10.19.31.mov
+  ✓FAKE  s1=0.5159  s2=0.0747  화면 기록 2026-05-14 오후 11.05.26.mov
+  ⚠️REAL  s1=0.4319  s2=0.0397  화면 기록 2026-05-12 오후 10.23.32.mov
+  ⚠️REAL  s1=0.3874  s2=0.0212  화면 기록 2026-05-12 오후 10.02.56.mov
+  ⚠️REAL  s1=0.3745  s2=0.0272  화면 기록 2026-05-14 오후 10.42.57.mov
+
+[전략별 비교 (s2_thr=0.0421)]
+  전략                                          Acc    TPR    FPR  TP/FP/TN/FN
+  v5 baseline (Stage2 only)                 0.875  0.810  0.053  17/1/18/4
+  OR-cascade (s1>0.5, s2>0.0421)            0.800  0.810  0.211  17/4/15/4
+  OR-cascade (s1>0.7, s2>0.0421)            0.875  0.810  0.053  17/1/18/4
+  OR-cascade (s1>0.8, s2>0.0421)            0.875  0.810  0.053  17/1/18/4
+  OR-cascade (s1>0.9, s2>0.0421)            0.875  0.810  0.053  17/1/18/4
+  OR-cascade (s1>0.95, s2>0.0421)           0.875  0.810  0.053  17/1/18/4
+  OR-cascade (s1>0.99, s2>0.0421)           0.875  0.810  0.053  17/1/18/4
+  AND-gating (s1>0.3, s2>0.0421)            0.875  0.810  0.053  17/1/18/4
+  AND-gating (s1>0.5, s2>0.0421)            0.875  0.810  0.053  17/1/18/4
+  AND-gating (s1>0.7, s2>0.0421)            0.875  0.810  0.053  17/1/18/4
+  Veto-by-S2 (s1>0.5 & s2>0.02, s2>0.0421)  0.800  0.810  0.211  17/4/15/4
+  Veto-by-S2 (s1>0.7 & s2>0.02, s2>0.0421)  0.875  0.810  0.053  17/1/18/4
+  Veto-by-S2 (s1>0.5 & s2>0.0421, s2>0.0421)  0.875  0.810  0.053  17/1/18/4
+  Veto-by-S2 (s1>0.7 & s2>0.0421, s2>0.0421)  0.875  0.810  0.053  17/1/18/4
+
+저장: /home/t26106/deepfake/eval_cascade_v3/cascade_safety_analysis.json

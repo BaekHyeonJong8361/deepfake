@@ -1,0 +1,44 @@
+{
+  "version": "v9_f3netlite_strong_reg",
+  "best_val_auc": 0.9819390894483254,
+  "best_epoch": 8,
+  "test_ff": {
+    "name": "TEST_FF",
+    "loss": 0.02514542142967467,
+    "acc": 0.8947748158274474,
+    "f1": 0.9345551593018587,
+    "bal_acc": 0.919364389280148,
+    "auc": 0.9724213025198623
+  },
+  "test_dfdc": {
+    "name": "TEST_DFDC",
+    "loss": 0.0207085723518622,
+    "acc": 0.8967546362339515,
+    "f1": 0.9388746173065419,
+    "bal_acc": 0.9292341143059992,
+    "auc": 0.987463687729263
+  },
+  "cross_gap_auc": -0.01504238520940071,
+  "comparison": {
+    "v7_ff_auc": 0.9659,
+    "v7_dfdc_auc": 0.9878,
+    "v7_gap": -0.0219,
+    "v8_ff_auc": 0.9737,
+    "v8_dfdc_auc": 0.9881,
+    "v8_gap": -0.0144,
+    "v9_vs_v8_ff_delta": -0.0012786974801377582,
+    "v9_vs_v8_dfdc_delta": -0.0006363122707370161
+  },
+  "model": "F3NetLite + classifier Dropout 0.3",
+  "regularization": {
+    "mixup_alpha": 0.2,
+    "label_smoothing": 0.05,
+    "dropout": 0.3
+  },
+  "env": {
+    "torch": "2.8.0+cu128",
+    "cudnn": 91002,
+    "cudnn_enabled": true
+  },
+  "note": "evaluate_v9.py\ub85c \ubcc4\ub3c4 \ud3c9\uac00 (\ud559\uc2b5 \uc885\ub8cc\uc2dc weights_only \uc774\uc288\ub85c \ud3c9\uac00 \ub2e8\uacc4 \uc2e4\ud328)."
+}

@@ -1,0 +1,17 @@
+[v24] Fine-tune from v20 | device=cuda
+[Sampler] fake=95006, non-SNS-real=19882, SNS-real=2774 (oversample 5.0x)
+[Sampler] num_samples per epoch: 90624
+/home/t26106/.venv/lib64/python3.9/site-packages/timm/models/_factory.py:138: UserWarning: Mapping deprecated model name xception to current legacy_xception.
+  model = create_fn(
+[v24] v20 체크포인트 로딩 완료 (val AUC: 1.0)
+[v24 Ep  1/12] lr=1.0e-05 | TrainLoss=0.0023 | ValAUC=0.9999 | SNS_RealAcc=0.9829 | Composite=0.9897
+  ✅ best saved (composite=0.9897)
+[v24 Ep  2/12] lr=1.0e-05 | TrainLoss=0.0002 | ValAUC=1.0000 | SNS_RealAcc=0.9815 | Composite=0.9889
+[v24 Ep  3/12] lr=9.8e-06 | TrainLoss=0.0001 | ValAUC=1.0000 | SNS_RealAcc=0.9801 | Composite=0.9880
+[v24 Ep  4/12] lr=9.3e-06 | TrainLoss=0.0000 | ValAUC=1.0000 | SNS_RealAcc=0.9829 | Composite=0.9897
+  ✅ best saved (composite=0.9897)
+[v24 Ep  5/12] lr=8.4e-06 | TrainLoss=0.0000 | ValAUC=1.0000 | SNS_RealAcc=0.9858 | Composite=0.9914
+  ✅ best saved (composite=0.9914)
+[v24 Ep  6/12] lr=7.4e-06 | TrainLoss=0.0000 | ValAUC=1.0000 | SNS_RealAcc=0.9815 | Composite=0.9889
+[v24 Ep  7/12] lr=6.1e-06 | TrainLoss=0.0000 | ValAUC=1.0000 | SNS_RealAcc=0.9786 | Composite=0.9872
+[v24 Ep  8/12] lr=4.9e-06 | TrainLoss=0.0000 | ValAUC=1.0000 | SNS_RealAcc=0.9843 | Composite=0.9906

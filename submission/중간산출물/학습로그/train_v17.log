@@ -1,0 +1,59 @@
+[v17] Frequency-Only Xception + SNS-aug | device=cuda:1
+      torch=2.8.0+cu128 | cudnn enabled=True | cudnn ver=91002
+📁 데이터 로딩...
+/home/t26106/deepfake/dataset.py:52: DtypeWarning: Columns (6) have mixed types. Specify dtype option on import or set low_memory=False.
+  self.df = pd.read_csv(csv_path)
+  train: 149,222 | val: 15,439
+
+🎯 4-way balanced sampler 구성:
+/home/t26106/deepfake/train_v7.py:58: DtypeWarning: Columns (6) have mixed types. Specify dtype option on import or set low_memory=False.
+  df = pd.read_csv(csv_path)
+  [4-way Sampler] 그룹별 샘플 수:
+    dfdc_0: 6,386
+    dfdc_1: 48,258
+    ff_0: 13,496
+    ff_1: 81,082
+
+🤖 FreqOnlyXception 로딩...
+/home/t26106/.venv/lib64/python3.9/site-packages/timm/models/_factory.py:138: UserWarning: Mapping deprecated model name xception to current legacy_xception.
+  model = create_fn(
+
+============================================================
+[v17] lr=0.0001, wd=0.0001, bs=16, epochs=30
+[v17] AUG: SNS Simulation (Bilateral/Gaussian/Median OneOf + Double-JPEG + ColorJitter)
+[v17] 데이터: FF++ + DFDC combined (Stage 1 마지막 퍼즐)
+============================================================
+
+[Epoch 1/30] lr=5.00e-05 | TrainLoss: 0.0582 | ValAUC: 0.9424
+  ⭐ best 갱신! (-1.0000 → 0.9424)
+[Epoch 2/30] lr=1.00e-04 | TrainLoss: 0.0439 | ValAUC: 0.9517
+  ⭐ best 갱신! (0.9424 → 0.9517)
+[Epoch 3/30] lr=1.00e-04 | TrainLoss: 0.0372 | ValAUC: 0.9620
+  ⭐ best 갱신! (0.9517 → 0.9620)
+[Epoch 4/30] lr=9.97e-05 | TrainLoss: 0.0341 | ValAUC: 0.9692
+  ⭐ best 갱신! (0.9620 → 0.9692)
+[Epoch 5/30] lr=9.88e-05 | TrainLoss: 0.0318 | ValAUC: 0.9576
+[Epoch 6/30] lr=9.72e-05 | TrainLoss: 0.0303 | ValAUC: 0.9736
+  ⭐ best 갱신! (0.9692 → 0.9736)
+[Epoch 7/30] lr=9.51e-05 | TrainLoss: 0.0295 | ValAUC: 0.9705
+[Epoch 8/30] lr=9.24e-05 | TrainLoss: 0.0286 | ValAUC: 0.9702
+[Epoch 9/30] lr=8.92e-05 | TrainLoss: 0.0275 | ValAUC: 0.9733
+[Epoch 10/30] lr=8.55e-05 | TrainLoss: 0.0268 | ValAUC: 0.9700
+[Epoch 11/30] lr=8.14e-05 | TrainLoss: 0.0259 | ValAUC: 0.9726
+[Epoch 12/30] lr=7.68e-05 | TrainLoss: 0.0252 | ValAUC: 0.9752
+  ⭐ best 갱신! (0.9736 → 0.9752)
+[Epoch 13/30] lr=7.20e-05 | TrainLoss: 0.0245 | ValAUC: 0.9684
+[Epoch 14/30] lr=6.68e-05 | TrainLoss: 0.0242 | ValAUC: 0.9753
+  ⭐ best 갱신! (0.9752 → 0.9753)
+[Epoch 15/30] lr=6.15e-05 | TrainLoss: 0.0236 | ValAUC: 0.9762
+  ⭐ best 갱신! (0.9753 → 0.9762)
+[Epoch 16/30] lr=5.60e-05 | TrainLoss: 0.0228 | ValAUC: 0.9749
+[Epoch 17/30] lr=5.05e-05 | TrainLoss: 0.0226 | ValAUC: 0.9722
+[Epoch 18/30] lr=4.50e-05 | TrainLoss: 0.0220 | ValAUC: 0.9698
+[Epoch 19/30] lr=3.95e-05 | TrainLoss: 0.0219 | ValAUC: 0.9732
+[Epoch 20/30] lr=3.42e-05 | TrainLoss: 0.0212 | ValAUC: 0.9743
+[Epoch 21/30] lr=2.90e-05 | TrainLoss: 0.0211 | ValAUC: 0.9665
+  🛑 6회 연속 개선 없음 → 조기 종료
+
+✅ v17 학습 완료. 베스트 모델: saved_models/freq_only_best_v17_sns_aug.pth
+============================================================

@@ -1,0 +1,93 @@
+{
+  "best_composite": 0.9998313344905196,
+  "history": [
+    {
+      "epoch": 1,
+      "val_auc": 0.9994942705068082,
+      "sns_real_acc": 0.9985754985754985,
+      "composite": 0.9989430073480224
+    },
+    {
+      "epoch": 2,
+      "val_auc": 0.9992812469155539,
+      "sns_real_acc": 0.9985754985754985,
+      "composite": 0.9988577979115207
+    },
+    {
+      "epoch": 3,
+      "val_auc": 0.9989400715966849,
+      "sns_real_acc": 0.9985754985754985,
+      "composite": 0.998721327783973
+    },
+    {
+      "epoch": 4,
+      "val_auc": 0.9986206873618314,
+      "sns_real_acc": 0.9985754985754985,
+      "composite": 0.9985935740900317
+    },
+    {
+      "epoch": 5,
+      "val_auc": 0.9993696456598434,
+      "sns_real_acc": 0.9971509971509972,
+      "composite": 0.9980384565545357
+    },
+    {
+      "epoch": 6,
+      "val_auc": 0.9991967277399795,
+      "sns_real_acc": 1.0,
+      "composite": 0.9996786910959918
+    },
+    {
+      "epoch": 7,
+      "val_auc": 0.9995783362262992,
+      "sns_real_acc": 1.0,
+      "composite": 0.9998313344905196
+    },
+    {
+      "epoch": 8,
+      "val_auc": 0.9990963879854897,
+      "sns_real_acc": 0.9985754985754985,
+      "composite": 0.998783854339495
+    },
+    {
+      "epoch": 9,
+      "val_auc": 0.9990092236494278,
+      "sns_real_acc": 0.9971509971509972,
+      "composite": 0.9978942877503694
+    },
+    {
+      "epoch": 10,
+      "val_auc": 0.9997806028315712,
+      "sns_real_acc": 0.9985754985754985,
+      "composite": 0.9990575402779276
+    },
+    {
+      "epoch": 11,
+      "val_auc": 0.9997385069918141,
+      "sns_real_acc": 0.9985754985754985,
+      "composite": 0.9990407019420248
+    },
+    {
+      "epoch": 12,
+      "val_auc": 0.9994417451771292,
+      "sns_real_acc": 0.9985754985754985,
+      "composite": 0.9989219972161508
+    },
+    {
+      "epoch": 13,
+      "val_auc": 0.9997534710425716,
+      "sns_real_acc": 0.9985754985754985,
+      "composite": 0.9990466875623278
+    }
+  ],
+  "config": {
+    "base": "/home/t26106/deepfake/saved_models/f3netlite_best_v20_df40_sns_aug.pth",
+    "lr": 0.0001,
+    "sns_oversample": 5.0,
+    "backbone_frozen": true,
+    "train_csv": "/home/t26106/deepfake/splits_v27/train_v27.csv",
+    "crop_ratio": 0.77,
+    "crop_px": 230,
+    "note": "center-crop 77% on top of 1.3x preprocessed → 1.0x effective"
+  }
+}

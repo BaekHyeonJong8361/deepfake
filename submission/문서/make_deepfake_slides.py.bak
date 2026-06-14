@@ -1,0 +1,435 @@
+"""
+딥페이크 발표 슬라이드 생성기
+T2V pptx 슬라이드를 베이스로 클론 + 텍스트 교체
+v3: 단일 prs 내 클론 + rels 복사로 배경/이미지 깨짐 수정
+"""
+import copy, shutil
+from lxml import etree
+from pptx import Presentation
+from pptx.util import Inches, Pt, Emu
+from pptx.dml.color import RGBColor
+
+NS_A = '{http://schemas.openxmlformats.org/drawingml/2006/main}'
+NS_P = '{http://schemas.openxmlformats.org/presentationml/2006/main}'
+NS_R = '{http://schemas.openxmlformats.org/officeDocument/2006/relationships}'
+
+SRC = '/tmp/t2v_template.pptx'
+OUT = '/home/t26106/deepfake/submission/문서/deepfake_slides.pptx'
+
+# ── T2V 슬라이드 → 딥페이크 슬라이드 텍스트 교체 맵 ──────────────────────────
+
+# 공통: 모든 슬라이드 헤더
+COMMON = {
+    'T2V 영상 탐지': '딥페이크 탐지',
+}
+
+# 슬라이드별 교체 맵 (T2V 슬라이드 인덱스, 교체 딕셔너리)
+SLIDES = [
+
+    # ── 슬라이드 1: 개요 및 문제배경 (T2V[1] 클론) ──
+    (1, {
+        '개요 및 문제 배경': '개요 및 문제 배경',
+        '37': '26',
+        # 해결방안 박스 제목 (split run: "Video-based" + " Detection")
+        'Video-based Detection': 'Explainable SNS Detection',
+        # 해결방안 박스 4개 항목 (모두 split run)
+        'AI Generated Content (T2V) 영상 탐지 모델 구현': 'SNS 도메인 특화 탐지 모델 구현 (F3NetLiteV20)',
+        '모델별 내부 성능 테스트': '실제 SNS 환경 데이터로 학습 (DF40 + SNS real)',
+        '외부 generator에 대한 일반화 한계 테스트': '실제 SNS 화면녹화로 OOD 일반화 성능 검증',
+        'XAI 설명 (explainable AI) 병행 제공': 'XAI 설명 병행 제공 — 왜 가짜인지 근거까지',
+        # 문제 배경 4개 항목 (single <a:t>)
+        '생성 영상의 고도화': 'SNS 딥페이크 확산',
+        'Sora, Veo 등은 카메라 움직임·객체 이동·조명 변화까지 포함한 사실적 영상을 생성': '인스타·틱톡에 실제로 퍼져 사람들이 속음',
+        '판별 기준의 변화': '벤치마크 ≠ 현실',
+        '손·얼굴·배경 왜곡처럼 눈에 띄는 artifact만으로는 짧은 시청에서 판별이 어려움': '학회 데이터는 풀렸지만 실제 SNS 영상은 도메인이 다름',
+        '단일 프레임 분석의 한계': '점수만으론 신뢰 불가',
+        'AI 흔적은 프레임 간 일관성, 움직임 자연스러움, 질감 변화에서 더 잘 드러날 수 있음': '"92% 가짜" 숫자만으론 왜 가짜인지 알 수 없음',
+        '비디오 기반 탐지 필요성': '진화하는 생성기',
+        '개별 프레임 진위보다 공간 정보와 시간 정보를 동시에 분석하는 접근이 필요': '최신 생성기는 기존 탐지기를 우회',
+        '해결방안': '해결방안',
+        '문제 배경': '문제 배경',
+    }),
+
+    # ── 슬라이드 2: 벤치마크 vs 현실 (T2V[4] 클론) ──
+    (4, {
+        '성능평가 계획': '벤치마크 ≠ 현실',   # 단축 제목 (overflow 방지)
+        '40': '27',
+        'Main evaluation': 'In-Distribution (학회 벤치마크)',
+        'GenVideo-100K Test Set': '학회 데이터에선 거의 완벽',
+        '모델별 성능 비교 · generator별 성능 비교 · 기본 분류 성능 확인': 'FF++ AUC 0.97  /  DFDC AUC 0.99',
+        '정확도': '❓ 그런데',
+        'Accuracy': '실제 SNS는?',
+        '균형성': '우리가 풀고 싶은 건',
+        'F1-score': '학회 데이터가 아니라',
+        '분리성': '인스타·틱톡에서',
+        'ROC-AUC': '사람들이 속는 그 영상',
+        '오분류': '',
+        'FP / FN': '',
+        'External evaluation': '핵심 질문',
+        'GenVidBench': '학회 데이터는 잘 잡는데,',
+        'OpenSora · MuseV': '실제 SNS 영상도 잡을까?',
+        '학습 데이터와 다른 generator 분포에서': '',
+        '성능 유지 여부와 일반화 한계를 확인': '',
+        '내부 데이터셋과 외부 AI video generator 데이터셋을 함께 활용하여,': '',
+        '모델의 기본 성능, 일반화 가능성, generator별 편차와 FP/FN 오류 구조를 종합적으로 분석한다.': '벤치마크 잘 잡는 모델 ≠ 실제 SNS 잡는 모델',
+    }),
+
+    # ── 슬라이드 3: 모델 아키텍처 (T2V[3] 클론) ──
+    (3, {
+        '시스템 구조': '모델 아키텍처',   # 단축 제목
+        '39': '28',
+        # 다이어그램 노드 (각각 별도 <a:t>) — \n 없이 개별 토큰
+        'Input': '입력',
+        'mp4 · gif': '299×299',
+        'npy · pt': 'RGB',
+        'Preprocessing': 'FAD 주파수',
+        '16 frames': '분해',
+        '224px normalize': '(3-band)',
+        'VideoMAE': 'RGB Branch',
+        'Encoder': '(Xception)',
+        'spatial-temporal': '공간 텍스처',
+        'feature': '2048-d',
+        'Transformer': 'Freq Branch',
+        'Head': '(Xception)',
+        'real / AI-gen': '주파수 아티팩트',
+        'probability': '2048-d',
+        'XAI 및 출력 결과': '핵심 설계 원칙',   # 긴 key 먼저 (sort에 의해 처리)
+        'XAI': 'SEBlock Fusion',
+        'attention rollout': '채널 어텐션',
+        'evidence': '4096-d',
+        'Output': '판정',
+        'decision': 'sigmoid',
+        'report': 'FAKE/REAL',
+        # 하단 카드 설명 텍스트 (일부 split run)
+        '입력 및 전처리': 'F3NetLiteV20 (dual-branch, ~44M)',
+        'mp4, gif, npy, pt 등 다양한 영상/특징 파일을 입력': 'RGB + 주파수 dual-branch → SEBlockFusion → sigmoid',
+        '16 frame, 224px 기준 clip으로 정규화': '파라미터 ~44M | backbone: Xception',
+        '특징 추출 및 분류': '추론 흐름 (AI 파트)',
+        'VideoMAE encoder가 시공간 feature를 추출': '영상 → 얼굴 검출·크롭 → 프레임별 추론',
+        # split run: "Trans" + "former Head가 real / ai 확률을 산출"
+        'Transformer Head가 real / ai 확률을 산출': '→ 앙상블 판정 → 어텐션 근거 생성',
+        'attention rollout으로 이상 프레임과 주목 영역을 추출': '공간(RGB) + 주파수(FAD) 두 관점을 어텐션으로 융합',
+        'heatmap, forensic_report 형태로 결과 제공': '→ 사람 눈에 안 보이는 합성 아티팩트까지 탐지',
+    }),
+
+    # ── 슬라이드 4: 데이터 & 학습 전략 (T2V[2] 클론) ──
+    (2, {
+        '목표 및 정보수집': '데이터 전략',   # 단축 제목
+        '38': '29',
+        '프로젝트 목표': '학습 데이터 3종',
+        'Real / AI-generated 이진 분류': 'DF40 — 최신 생성기 40종, 약 24만 장',
+        '입력 영상의 생성 여부 확률 산출': 'sd2.1 / DiT / SiT 등 최신 딥페이크 포함',
+        '데이터셋 기반 성능 확보': 'FF++ / DFDC real — 고전 진짜 얼굴',
+        '학습·검증·내부 test로 정량 평가': '기존 벤치마크 real 영상 활용',
+        'XAI 근거 제공': 'SNS real — 실제 SNS 화면녹화 자체 수집',
+        '프레임 중요도와 의심 구간 시각화': 'real 70개 직접 라벨 검증 → 평가셋 구성',
+        '일반화 한계 평가': 'SNS 도메인 증강',
+        '학습 분포 밖 generator에서 검증': '화면녹화 아티팩트 모사',
+        '탐지 방법론 조사': '증강 기법',
+        '딥러닝 기반 이진 분류': 'Double JPEG 압축',
+        '라벨 데이터로 real / ai_generated를 학습': 'bilateral / median 스무딩',
+        '생성 모델 재구성 흔적 기반 탐지': 'resize-rescale',
+        # curly apostrophe U+2019 수정
+        'Turns Out I\u2019m Not Real: Towards Robust': 'Gaussian 노이즈',
+        'Detection of AI-Generated Videos': '',
+        '물리 기반 시공간 모델링': '핵심 전략',
+        # 2 runs: split → para-level 처리
+        'Physics-Driven Spatiotemporal Modeling for': '학습 데이터와 평가셋(140개)은 출처가 분리됨',
+        'AI-Generated Video Detection': '',
+        'Training-free statistics': '데이터셋',
+        # 2 runs: split → para-level 처리
+        'Training-free Detection of Generated': '내부 평가',
+        'Videos via Spatial-Temporal Likelihoods': 'SNS real 140개 (real 70 / fake 70) — 직접 수집·검증',
+        '데이터셋 선정': '외부 비교',
+        '학습·검증·내부 test': 'DF40 (공개) + FF++/DFDC (공개) — 학습 전용',
+        'GenVideo-100K': '',
+        '라벨이 있는 10000개 이상의 데이터셋': '',
+        'GenWorld: Towards Detecting AI-generated Real-world Simulation Videos 논문 기반': '',
+        '외부 generator': '',
+        'GenVidBench': '',
+        '학습 분포 밖 generator로 일반화 성능과 모델 순위 변화를 확인': '',
+    }),
+
+    # ── 슬라이드 5: SNS는 동전던지기 (T2V[7] 클론) ──
+    (7, {
+        '성능평가 결과 - 내부 Generator ': 'SNS는 동전던지기',   # 단축 제목 + trailing space 포함
+        '43': '30',
+        '19,889': '0.97',
+        'Test samples': 'FF++ AUC',
+        '0.9868': '0.99',
+        'Accuracy': 'DFDC AUC',
+        '0.9869': '0.41',
+        'F1-score': 'SNS OOD',
+        '0.9995': '0.50',
+        'ROC-AUC': '랜덤 기준선',
+        '262': '↓',
+        'Total errors': '동전던지기보다 낮음',
+        '오분류 구조': '도메인 갭',
+        'False Positive': 'in-dist → OOD',
+        '251': '0.97 → 0.41',
+        'False Negative': '성능 붕괴',
+        '11': '−0.56',
+        '실제 영상을 AI 영상으로 잘못 판단하는 FP가 FN보다 훨씬 많습니다. (위양성)': '벤치마크 잘 잡는 모델 ≠ 실제 SNS 잡는 모델',
+        '해석': '결론',
+        # 2 runs → para-level 처리 (full 문장 key 사용)
+        '대체로 높은 정확도를 보인다. 또한 AI 생성 영상을 놓치는 FN(위음성)이 낮게 유지된 것은 좋은 신호이다.': '이 0.41을 끌어올리는 것이 프로젝트의 진짜 시작',
+        '그러나 실제 서비스에서는 정상 영상을 AI로 오탐하면 사용자 신뢰를 해칠 수 있다. 추후 FP 부분에서의 보완도 필요할 것으로 보인다.': '',
+    }),
+
+    # ── 슬라이드 6: 37번의 실험 (T2V[6] 클론) ──
+    (6, {
+        '성능평가 결과 - Generator별 비교': '0.41을 풀려고: 37번의 실험',
+        '42': '31',
+        'Generator': '구간',
+        'Transformer Head': 'DINOv2 비교',    # 긴 key 먼저 → sort가 처리
+        'Transformer': '결과',
+        'MLP Head': '주요 변경',   # 단일 entry (중복 제거)
+        'FT': '전략',
+        'DynamicCrafter': 'v1~v5',
+        '0.995': '아키텍처 탐색',
+        '0.998': 'Xception → F3NetLite',
+        '0.989': '기반 구조 확립',
+        'I2VGEN_XL': 'v6~v10',
+        '1.000': 'in-dist 최적화',
+        '0.976': 'FF++/DFDC 통합 + 주파수 branch 도입',
+        'Latte': '→ in-dist 0.97/0.99 달성',
+        '0.377': 'v11~v17',
+        '0.872': 'SNS OOD 시도',
+        '0.919': 'DF40 단독 · SNS 증강 투입',
+        'OpenSora': '→ OOD 0.41 (Phase1 실패 선언)',
+        '0.801': 'v20',
+        '0.960': 'DF40 + SNS 첫 학습',
+        '0.857': '→ OOD 0.67 (+0.26)',
+        'Pika': 'v24',
+        '0.999': 'SNS real 5x 파인튜닝',
+        '0.997': '→ OOD 0.87 (단일 최고)',
+        '0.838': 'v28~v34',
+        'SD': 'DINOv2 계열 시도',
+        '0.202': '→ 0.81 (못 넘음)',
+        '0.583': 'sweep',
+        '0.817': 'v24+v25+v29 앙상블',
+        'SEINE': '→ 0.89',
+        '0.868': '',
+        '0.898': '',
+        '0.682': '',
+        'SVD': '총 37개 버전',
+        '0.920': '변수를 하나씩만 바꾸며 통제 실험',
+        '0.968': '',
+        '0.657': '',
+        'VideoCrafter': '',
+        '0.946': '',
+        '0.952': '',
+        '0.613': '',
+        'ZeroScope': '',
+        '0.663': '',
+        '0.803': '',
+        '0.571': '',
+        '포의 파란 셀은 해당 generator에서 가장 높은 accuracy입니다.': '각 구간에서 단 하나의 변수만 바꾸어 효과를 분리',
+        '관찰 포인트': '핵심 인사이트',
+        'generator별 정확도 편차': '데이터가 성능을 가른다',
+        'generator별로 모델 간 accuracy 차이가 크게 나타남': 'DF40 추가 → +0.26 / SNS real 파인튜닝 → +0.20',
+        '10개의 generator 중 7개에서 가장 높은 accuracy': '최신 SSL(DINOv2 0.81) < 우리 모델(0.87)',
+        '일부 generator에서 0.6 이하의 낮은 accuracy': '화려한 구조보다 도메인 맞는 데이터가 핵심',
+    }),
+
+    # ── 슬라이드 7: Ablation (T2V[1] 재활용) ──
+    (1, {
+        '개요 및 문제 배경': 'Ablation',    # 단축 제목 (overflow 방지)
+        '37': '32',
+        # 해결방안 → 결론 박스 (split run)
+        'Video-based Detection': '단계별 OOD AUC',
+        'AI Generated Content (T2V) 영상 탐지 모델 구현': '주파수 구조 단독 기여: +0.066 (보조)',
+        '모델별 내부 성능 테스트': 'DINOv2 최신 SSL 비교: 0.81 < 우리 0.87',
+        '외부 generator에 대한 일반화 한계 테스트': '학습 데이터와 평가셋(140개)은 출처 분리됨',
+        'XAI 설명 (explainable AI) 병행 제공': 'ablation_ood_v2.png 차트 삽입 위치',
+        '해결방안': '결론',
+        '문제 배경': '단계별 ablation',
+        # 단계별 ablation 내용 (문제배경 4개 항목 교체)
+        '생성 영상의 고도화': 'Phase1 baseline',
+        'Sora, Veo 등은 카메라 움직임·객체 이동·조명 변화까지 포함한 사실적 영상을 생성': '주파수 모델 + SNS 증강 (DF40 없음) → OOD AUC: 0.41',
+        '판별 기준의 변화': '+ DF40 데이터',
+        '손·얼굴·배경 왜곡처럼 눈에 띄는 artifact만으로는 짧은 시청에서 판별이 어려움': 'fake를 DF40 24만/40종으로 교체 → OOD AUC: 0.67 (+0.26)',
+        '단일 프레임 분석의 한계': '+ SNS real 파인튜닝',
+        'AI 흔적은 프레임 간 일관성, 움직임 자연스러움, 질감 변화에서 더 잘 드러날 수 있음': '실제 SNS real 5x 오버샘플 → OOD AUC: 0.87 (+0.20)',
+        '비디오 기반 탐지 필요성': '통제 실험 근거',
+        '개별 프레임 진위보다 공간 정보와 시간 정보를 동시에 분석하는 접근이 필요': 'v16→v20: 구조 사실상 동일 → 바뀐 건 학습 데이터뿐 → +0.26은 순수 데이터 효과',
+    }),
+
+    # ── 슬라이드 8: 정직한 한계 (T2V[10] 클론) ──
+    (10, {
+        '한계 및 보완 방향': '정직한 한계',   # 단축 제목
+        '46': '33',
+        '한계': '현재 성능 & 한계',
+        '1': '1',
+        '높은 위양성(FP)': '단일 모델 v24 = 0.87 ← 대표 수치',
+        'GenVideo test에서 FP 251개로 FN보다 20배 많음': '앙상블 = 0.89 (동일 셋 sweep → 낙관적, 보조)',
+        '2': '2',
+        '외부 generator 일반화 부족': '평가셋 n=140',
+        'MuseV에서 accuracy 0.8137로 하락': '라벨 신뢰성 위해 양보다 검증된 데이터 택함',
+        '3': '3',
+        '실험 통제 부족': '강한 후보정 오탐',
+        '동일 조건의 Transformer Head fine-tuning 비교 필요': '보정·필터 극단적으로 강한 진짜 영상 → 딥페이크 오탐 가능',
+        '4': '4',
+        '방법론적 한계': 'DINOv2-large OOD = 0.81 < 우리 0.87',
+        '지도학습 모델은 generator-specific artifact를 학습할 수 있음': '최신 backbone이 아닌 이유: 우리 OOD에선 더 낮고 추론 무거움',
+        'Next Step': '개선사항',
+        '외부 generator 평가 확대': '검증된 OOD 데이터 확장',
+        'OpenSora·MuseV 외 다양한 생성 모델로 평가 범위 확장': '신뢰구간 좁히고 0.87을 더 위로',
+        'same-head fine-tuning 반복 실험': '보정 강도 분리 학습',
+        '동일 조건에서 head 구조와 fine-tuning 효과를 공정 비교': '"심한 보정 ≠ 딥페이크" 오탐 감소',
+        'physics-driven / training-free 방법 검토': '최신 생성기 지속 편입',
+        '이진 분류의 generator-specific artifact 문제 해결': '이진 분류의 generator-specific artifact 문제 해결',
+        'AI 판정 기준 조정 및 오탐 검토 기능': 'AI 판정 기준 조정 및 오탐 검토 기능',
+        '정상 영상을 AI로 오판하는 문제를 줄이기 위한 운영 기준 조정': '현실적 출발점으로 봄. 완성이 아닌 baseline.',
+    }),
+
+    # ── 슬라이드 9: XAI (T2V[9] 클론) ──
+    (9, {
+        'XAI 구조': 'XAI',   # 단축 제목 (overflow 방지)
+        '45': '34',
+        'Heatmap / Overlay': '실제 제품 출력 (Solomon AI)',
+        # 파이프라인 노드 (각각 별도 <a:t>)
+        'Decision': '판정',
+        'Report': '포렌식 리포트',
+        # Frame, importance, Suspicious, segment, Heatmap, overlay는 deepfake XAI에도 동일 → 유지
+        'XAI 파이프라인': 'XAI 파이프라인',
+        # XAI 출력 요소 섹션
+        'XAI 출력 요소': 'XAI 출력 요소',
+        'Frame importance': 'Grad-CAM 히트맵',
+        '모델이 중요하게 본 프레임 점수': '공간적으로 이상한 영역 — 코·얼굴 중앙',
+        'Suspicious segment': 'Frame-by-Frame 그래프',
+        'AI-generated로 의심되는': '시간축 이상 구간 + threshold 라인',
+        '시간 구간': '(언제 튀는가)',
+        'Explanation summary': '기여도 분해',
+        '앞의 내용에 ai 영상 유형을': 'RGB vs 주파수 — 영상마다 비율 다름',
+        '덧붙인 최종 설명 요약': '(예시: Freq 63% / Spatial 37%)',
+        '공간·시간·주파수 3중 근거 = 설명 가능한 포렌식 증거': '공간·시간·주파수 3중 근거 = 설명 가능한 포렌식 증거',
+    }),
+
+    # ── 슬라이드 10: 정리 (T2V[10] 재활용) ──
+    (10, {
+        '한계 및 보완 방향': '정리',
+        '46': '35',
+        '한계': '요약',
+        '높은 위양성(FP)': '문제 인식',
+        'GenVideo test에서 FP 251개로 FN보다 20배 많음': '학회에선 풀린 듯 보이던 문제가 실제 SNS에선 0.41',
+        '외부 generator 일반화 부족': '해결',
+        'MuseV에서 accuracy 0.8137로 하락': '데이터 전략 (DF40 + SNS real 파인튜닝)으로 0.87까지',
+        '실험 통제 부족': '설명',
+        '동일 조건의 Transformer Head fine-tuning 비교 필요': "판정에 '왜'라는 XAI를 붙였다",
+        '방법론적 한계': '현실적 출발점',
+        '지도학습 모델은 generator-specific artifact를 학습할 수 있음': '한계는 인정하되, 실제로 쓸 수 있는 baseline을 만들었다',
+        'Next Step': '핵심 성과',
+        '외부 generator 평가 확대': '0.41 → 0.87',
+        'OpenSora·MuseV 외 다양한 생성 모델로 평가 범위 확장': '데이터 전략의 힘',
+        'same-head fine-tuning 반복 실험': 'XAI',
+        '동일 조건에서 head 구조와 fine-tuning 효과를 공정 비교': '설명 가능한 탐지',
+        'physics-driven / training-free 방법 검토': '감사합니다',
+        '이진 분류의 generator-specific artifact 문제 해결': '',
+        'AI 판정 기준 조정 및 오탐 검토 기능': '',
+        '정상 영상을 AI로 오판하는 문제를 줄이기 위한 운영 기준 조정': '',
+    }),
+]
+
+# ── 슬라이드 클론 + 텍스트 교체 함수 ───────────────────────────────────────────
+
+def replace_text_in_xml(element, replacements):
+    """
+    두 단계 텍스트 교체:
+      Phase 1 — 단락(paragraph) 레벨: run이 여러 개로 쪼개진 경우 처리
+      Phase 2 — 단일 <a:t> 레벨: 일반 케이스
+    긴 key를 먼저 처리해 substring 오염 방지.
+    """
+    NS_A_T = NS_A + 't'
+    NS_A_P = NS_A + 'p'
+    NS_A_R = NS_A + 'r'
+
+    # 긴 key 먼저 처리 (substring 충돌 방지)
+    sorted_reps = sorted(replacements.items(), key=lambda x: -len(x[0]))
+
+    # Phase 1: paragraph 레벨 (2개 이상 run으로 쪼개진 텍스트 처리)
+    for para in element.iter(NS_A_P):
+        runs = [child for child in para if child.tag == NS_A_R]
+        if len(runs) < 2:
+            continue
+        t_elems = [r.find(NS_A_T) for r in runs]
+        valid = [(r, t) for r, t in zip(runs, t_elems) if t is not None]
+        if not valid:
+            continue
+        full_text = ''.join(t.text or '' for _, t in valid)
+        modified = False
+        for old, new in sorted_reps:
+            if old in full_text:
+                full_text = full_text.replace(old, new)
+                modified = True
+        if modified:
+            valid[0][1].text = full_text
+            for _, t in valid[1:]:
+                t.text = ''
+
+    # Phase 2: 단일 <a:t> 레벨 (첫 매칭 키만 적용 — cascade 치환 방지)
+    for t_elem in element.iter(NS_A_T):
+        if t_elem.text:
+            for old, new in sorted_reps:
+                if old in t_elem.text:
+                    t_elem.text = t_elem.text.replace(old, new)
+                    break  # 한 element에 첫 번째 매칭 키만 적용
+
+
+def clone_slide_with_replacements(src_prs, src_idx, dst_prs, replacements):
+    """T2V 슬라이드를 클론해서 새 prs에 추가"""
+    src_slide = src_prs.slides[src_idx]
+
+    blank_layout = dst_prs.slide_layouts[6]
+    new_slide = dst_prs.slides.add_slide(blank_layout)
+
+    sp_tree = new_slide.shapes._spTree
+    for child in list(sp_tree):
+        sp_tree.remove(child)
+
+    src_sp_tree = src_slide.shapes._spTree
+    for child in src_sp_tree:
+        sp_tree.append(copy.deepcopy(child))
+
+    try:
+        src_bg = src_slide.background._element
+        new_bg = new_slide.background._element
+        new_bg.getparent().replace(new_bg, copy.deepcopy(src_bg))
+    except Exception:
+        pass
+
+    combined = {**COMMON, **replacements}
+    replace_text_in_xml(new_slide._element, combined)
+
+    return new_slide
+
+
+# ── 메인 실행 ────────────────────────────────────────────────────────────────
+
+def main():
+    print("T2V 템플릿 로드 중...")
+    src_prs = Presentation(SRC)
+
+    shutil.copy(SRC, OUT)
+    dst_prs = Presentation(OUT)
+
+    print(f"기존 슬라이드 {len(dst_prs.slides)}개 제거 중...")
+    from pptx.oxml.ns import qn
+    sldIdLst = dst_prs.slides._sldIdLst
+    for sldId_elem in list(sldIdLst):
+        rId = sldId_elem.get(qn('r:id'))
+        dst_prs.part.drop_rel(rId)
+        sldIdLst.remove(sldId_elem)
+
+    print(f"딥페이크 슬라이드 {len(SLIDES)}장 생성 중...")
+    for i, (src_idx, replacements) in enumerate(SLIDES):
+        clone_slide_with_replacements(src_prs, src_idx, dst_prs, replacements)
+        print(f"  [{i+1}/{len(SLIDES)}] T2V[{src_idx+1}] 기반 → 완료")
+
+    dst_prs.save(OUT)
+    print(f"\n✅ 저장 완료: {OUT}")
+    print(f"   슬라이드 수: {len(dst_prs.slides)}장")
+
+
+if __name__ == '__main__':
+    main()

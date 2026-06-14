@@ -1,0 +1,20 @@
+{
+  "version": "v18_freq_only_df40_sns_aug",
+  "best_val_auc": 1.0,
+  "test_df40": {
+    "name": "TEST_V18",
+    "loss": 0.0011792720105299483,
+    "acc": 0.9996640349403662,
+    "f1": 0.9997520456236053,
+    "bal_acc": 0.9997065697968348,
+    "auc": 0.9999998851854137
+  },
+  "model": "FreqOnlyXception (FAD + Xception, v13 \uae30\ubc18)",
+  "params_M": 21.083028,
+  "data": "DF40 fake + FF++/DFDC real",
+  "regularization": {
+    "mixup_alpha": 0.2,
+    "label_smoothing": 0.05,
+    "dropout": 0.3
+  }
+}

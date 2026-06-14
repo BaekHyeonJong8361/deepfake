@@ -1,0 +1,46 @@
+{
+  "best_composite": 0.9948588361046069,
+  "history": [
+    {
+      "epoch": 1,
+      "val_auc": 0.9999676030820301,
+      "sns_real_acc": 0.9914529914529915,
+      "composite": 0.9948588361046069
+    },
+    {
+      "epoch": 2,
+      "val_auc": 0.9999889407099621,
+      "sns_real_acc": 0.9886039886039886,
+      "composite": 0.993157969446378
+    },
+    {
+      "epoch": 3,
+      "val_auc": 0.9999894445500549,
+      "sns_real_acc": 0.98005698005698,
+      "composite": 0.98802996585421
+    },
+    {
+      "epoch": 4,
+      "val_auc": 0.9999827434768201,
+      "sns_real_acc": 0.9757834757834758,
+      "composite": 0.9854631828608136
+    },
+    {
+      "epoch": 5,
+      "val_auc": 0.9999925179746213,
+      "sns_real_acc": 0.9886039886039886,
+      "composite": 0.9931594003522417
+    },
+    {
+      "epoch": 6,
+      "val_auc": 0.9999902255021988,
+      "sns_real_acc": 0.9658119658119658,
+      "composite": 0.979483269688059
+    }
+  ],
+  "config": {
+    "base": "/home/t26106/deepfake/saved_models/f3netlite_best_v20_df40_sns_aug.pth",
+    "lr": 1e-05,
+    "sns_oversample": 2.0
+  }
+}

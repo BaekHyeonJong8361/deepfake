@@ -1,0 +1,99 @@
+==============================================================================
+SOTA Benchmark: FF++ + DFDC (video-level)
+==============================================================================
+/home/t26106/.venv/lib64/python3.9/site-packages/timm/models/_factory.py:138: UserWarning: Mapping deprecated model name xception to current legacy_xception.
+  model = create_fn(
+  [v15] OK
+  [v16] OK
+  [v17] OK
+  [v20] OK
+  [v27] OK
+
+==============================================================================
+[FF++ test]  CSV: /home/t26106/deepfake/splits_v6/test_ff_only.csv
+==============================================================================
+  샘플: 2484 frames from 500 videos
+    progress: 200/2484
+    progress: 400/2484
+    progress: 600/2484
+    progress: 800/2484
+    progress: 1000/2484
+    progress: 1200/2484
+    progress: 1400/2484
+    progress: 1600/2484
+    progress: 1800/2484
+    progress: 2000/2484
+    progress: 2200/2484
+    progress: 2400/2484
+  video-level: n=500 (real=64, fake=436)
+
+  [단독 AUC (video-level)]
+    v15: AUC=0.9868
+    v16: AUC=0.9844
+    v17: AUC=0.9876
+    v20: AUC=0.6069
+    v27: AUC=0.5922
+
+  [Stage1 ensemble (v15+v16+v17, w=0.5/1/1)] AUC=0.9880
+  [Stage2 ensemble (v20+v27, w=0.05/0.95)] AUC=0.5953
+
+  [Fused max(s1,s2)]   AUC=0.9880
+  [Fused 0.5*s1+0.5*s2] AUC=0.9880
+
+  [Fused w_s1 sweep]
+    w_s1=0.0  AUC=0.5953
+    w_s1=0.1  AUC=0.9882
+    w_s1=0.2  AUC=0.9882
+    w_s1=0.3  AUC=0.9880
+    w_s1=0.4  AUC=0.9880
+    w_s1=0.5  AUC=0.9880
+    w_s1=0.6  AUC=0.9880
+    w_s1=0.7  AUC=0.9880
+    w_s1=0.8  AUC=0.9879
+    w_s1=0.9  AUC=0.9880
+    w_s1=1.0  AUC=0.9880
+
+==============================================================================
+[DFDC test]  CSV: /home/t26106/deepfake/splits_v6/test_dfdc_only.csv
+==============================================================================
+  샘플: 2354 frames from 500 videos
+    progress: 200/2354
+    progress: 400/2354
+    progress: 600/2354
+    progress: 800/2354
+    progress: 1000/2354
+    progress: 1200/2354
+    progress: 1400/2354
+    progress: 1600/2354
+    progress: 1800/2354
+    progress: 2000/2354
+    progress: 2200/2354
+  video-level: n=500 (real=56, fake=444)
+
+  [단독 AUC (video-level)]
+    v15: AUC=0.9934
+    v16: AUC=0.9936
+    v17: AUC=0.9960
+    v20: AUC=0.5555
+    v27: AUC=0.6166
+
+  [Stage1 ensemble (v15+v16+v17, w=0.5/1/1)] AUC=0.9958
+  [Stage2 ensemble (v20+v27, w=0.05/0.95)] AUC=0.5585
+
+  [Fused max(s1,s2)]   AUC=0.9958
+  [Fused 0.5*s1+0.5*s2] AUC=0.9957
+
+  [Fused w_s1 sweep]
+    w_s1=0.0  AUC=0.5585
+    w_s1=0.1  AUC=0.9954
+    w_s1=0.2  AUC=0.9956
+    w_s1=0.3  AUC=0.9957
+    w_s1=0.4  AUC=0.9957
+    w_s1=0.5  AUC=0.9957
+    w_s1=0.6  AUC=0.9957
+    w_s1=0.7  AUC=0.9957
+    w_s1=0.8  AUC=0.9957
+    w_s1=0.9  AUC=0.9958
+    w_s1=1.0  AUC=0.9958
+
+저장: /home/t26106/deepfake/eval_cascade_v3/sota_benchmark_results.json

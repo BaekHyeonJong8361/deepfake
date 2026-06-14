@@ -1,0 +1,33 @@
+[v16] F3NetLite (RGB+Freq) + SNS-aug | device=cuda:1
+  torch=2.8.0+cu128 | cudnn=91002 | enabled=True
+📁 데이터 로딩...
+/home/t26106/deepfake/dataset.py:52: DtypeWarning: Columns (6) have mixed types. Specify dtype option on import or set low_memory=False.
+  self.df = pd.read_csv(csv_path)
+  train: 149,222 | val: 15,439
+/home/t26106/deepfake/train_v7.py:58: DtypeWarning: Columns (6) have mixed types. Specify dtype option on import or set low_memory=False.
+  df = pd.read_csv(csv_path)
+  [4-way Sampler] 그룹별 샘플 수:
+    dfdc_0: 6,386
+    dfdc_1: 48,258
+    ff_0: 13,496
+    ff_1: 81,082
+
+🤖 F3NetLite 로딩...
+/home/t26106/.venv/lib64/python3.9/site-packages/timm/models/_factory.py:138: UserWarning: Mapping deprecated model name xception to current legacy_xception.
+  model = create_fn(
+
+============================================================
+[v16] Training started.
+============================================================
+
+[Epoch 1/30] lr=5.00e-05 | TrainLoss: 0.0372 | ValAUC: 0.9581
+  ⭐ best 갱신! (-1.0000 → 0.9581)
+[Epoch 2/30] lr=1.00e-04 | TrainLoss: 0.0255 | ValAUC: 0.9629
+  ⭐ best 갱신! (0.9581 → 0.9629)
+[Epoch 3/30] lr=1.00e-04 | TrainLoss: 0.0190 | ValAUC: 0.9708
+  ⭐ best 갱신! (0.9629 → 0.9708)
+[Epoch 4/30] lr=9.97e-05 | TrainLoss: 0.0158 | ValAUC: 0.9757
+  ⭐ best 갱신! (0.9708 → 0.9757)
+[Epoch 5/30] lr=9.88e-05 | TrainLoss: 0.0140 | ValAUC: 0.9760
+  ⭐ best 갱신! (0.9757 → 0.9760)
+[Epoch 6/30] lr=9.72e-05 | TrainLoss: 0.0122 | ValAUC: 0.9701

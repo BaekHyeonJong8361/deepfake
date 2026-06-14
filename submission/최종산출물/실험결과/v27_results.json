@@ -1,0 +1,61 @@
+{
+  "best_composite": 0.9998981537636327,
+  "history": [
+    {
+      "epoch": 1,
+      "val_auc": 0.9987675567488953,
+      "sns_real_acc": 0.9871794871794872,
+      "composite": 0.9918147150072505
+    },
+    {
+      "epoch": 2,
+      "val_auc": 0.9997453844090816,
+      "sns_real_acc": 1.0,
+      "composite": 0.9998981537636327
+    },
+    {
+      "epoch": 3,
+      "val_auc": 0.9997088308103457,
+      "sns_real_acc": 0.9928774928774928,
+      "composite": 0.995610028050634
+    },
+    {
+      "epoch": 4,
+      "val_auc": 0.9996607392734838,
+      "sns_real_acc": 0.99002849002849,
+      "composite": 0.9938813897264875
+    },
+    {
+      "epoch": 5,
+      "val_auc": 0.9996882741345576,
+      "sns_real_acc": 0.9914529914529915,
+      "composite": 0.994747104525618
+    },
+    {
+      "epoch": 6,
+      "val_auc": 0.9995962225495951,
+      "sns_real_acc": 0.99002849002849,
+      "composite": 0.9938555830369321
+    },
+    {
+      "epoch": 7,
+      "val_auc": 0.9998784989616107,
+      "sns_real_acc": 0.9928774928774928,
+      "composite": 0.99567789531114
+    },
+    {
+      "epoch": 8,
+      "val_auc": 0.999793576713962,
+      "sns_real_acc": 0.9914529914529915,
+      "composite": 0.9947892255573797
+    }
+  ],
+  "config": {
+    "base": "/home/t26106/deepfake/saved_models/f3netlite_best_v20_df40_sns_aug.pth",
+    "lr": 0.0001,
+    "sns_oversample": 5.0,
+    "backbone_frozen": true,
+    "train_csv": "/home/t26106/deepfake/splits_v27/train_v27.csv",
+    "sns_real_frames": 10572
+  }
+}

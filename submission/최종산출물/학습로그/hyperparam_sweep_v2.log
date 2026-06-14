@@ -1,0 +1,69 @@
+[hyperparam_sweep_v2] 시작
+비디오 140개 (real=70, fake=70)
+/home/t26106/.venv/lib64/python3.9/site-packages/timm/models/_factory.py:138: UserWarning: Mapping deprecated model name xception to current legacy_xception.
+  model = create_fn(
+  ✅ v24 loaded
+  ✅ v25 loaded
+  ✅ v26 loaded
+  ✅ v29 loaded
+
+============================================================
+EXP 1: min_detection_confidence sweep
+============================================================
+WARNING: All log messages before absl::InitializeLog() is called are written to STDERR
+I0000 00:00:1779522774.971308 2903622 gl_context_egl.cc:85] Successfully initialized EGL. Major : 1 Minor: 5
+I0000 00:00:1779522775.029981 2903761 gl_context.cc:344] GL version: 3.2 (OpenGL ES 3.2 NVIDIA 580.95.05), renderer: NVIDIA RTX 4500 Ada Generation/PCIe/SSE2
+INFO: Created TensorFlow Lite XNNPACK delegate for CPU.
+  conf=0.3  AUC=0.8818
+I0000 00:00:1779522824.494236 2903622 gl_context_egl.cc:85] Successfully initialized EGL. Major : 1 Minor: 5
+I0000 00:00:1779522824.530235 2908454 gl_context.cc:344] GL version: 3.2 (OpenGL ES 3.2 NVIDIA 580.95.05), renderer: NVIDIA RTX 4500 Ada Generation/PCIe/SSE2
+  conf=0.4  AUC=0.8818
+I0000 00:00:1779522873.946220 2903622 gl_context_egl.cc:85] Successfully initialized EGL. Major : 1 Minor: 5
+I0000 00:00:1779522873.984191 2913088 gl_context.cc:344] GL version: 3.2 (OpenGL ES 3.2 NVIDIA 580.95.05), renderer: NVIDIA RTX 4500 Ada Generation/PCIe/SSE2
+  conf=0.5  AUC=0.8818
+
+============================================================
+EXP 2: v26 inclusion
+============================================================
+I0000 00:00:1779522923.571145 2903622 gl_context_egl.cc:85] Successfully initialized EGL. Major : 1 Minor: 5
+I0000 00:00:1779522923.608063 2917844 gl_context.cc:344] GL version: 3.2 (OpenGL ES 3.2 NVIDIA 580.95.05), renderer: NVIDIA RTX 4500 Ada Generation/PCIe/SSE2
+  v24(0.2)+v25(0.5)+v29(0.3)                     AUC=0.8818
+  v24(0.2)+v25(0.4)+v26(0.1)+v29(0.3)            AUC=0.8757
+  v24(0.2)+v25(0.3)+v26(0.2)+v29(0.3)            AUC=0.8684
+  v24(0.15)+v25(0.5)+v26(0.1)+v29(0.25)          AUC=0.8745
+  v24(0.3)+v25(0.5)+v26(0.2)                     AUC=0.8524
+  v24(0.2)+v25(0.5)+v26(0.3)                     AUC=0.8437
+  v25(0.5)+v26(0.2)+v29(0.3)                     AUC=0.8620
+  v25(0.6)+v26(0.2)+v29(0.2)                     AUC=0.8576
+
+============================================================
+EXP 3: fine weight grid (v24+v25+v29, step=0.05)
+============================================================
+I0000 00:00:1779522974.370798 2903622 gl_context_egl.cc:85] Successfully initialized EGL. Major : 1 Minor: 5
+I0000 00:00:1779522974.395498 2922574 gl_context.cc:344] GL version: 3.2 (OpenGL ES 3.2 NVIDIA 580.95.05), renderer: NVIDIA RTX 4500 Ada Generation/PCIe/SSE2
+  Grid size: 168 combos
+  v24/v25/v29=0.2/0.55/0.25  AUC=0.8822
+  v24/v25/v29=0.25/0.5/0.25  AUC=0.8818
+  v24/v25/v29=0.2/0.5/0.3  AUC=0.8818
+  v24/v25/v29=0.15/0.6/0.25  AUC=0.8816
+  v24/v25/v29=0.1/0.65/0.25  AUC=0.8814
+  ★ BEST: {'v24': 0.2, 'v25': 0.55, 'v29': 0.25}  AUC=0.8822
+
+============================================================
+EXP 4: FRAME_STEP sweep
+============================================================
+I0000 00:00:1779523024.202545 2903622 gl_context_egl.cc:85] Successfully initialized EGL. Major : 1 Minor: 5
+I0000 00:00:1779523024.234079 2927298 gl_context.cc:344] GL version: 3.2 (OpenGL ES 3.2 NVIDIA 580.95.05), renderer: NVIDIA RTX 4500 Ada Generation/PCIe/SSE2
+  FRAME_STEP=15  AUC=0.8569
+  FRAME_STEP=20  AUC=0.8767
+  FRAME_STEP=25  AUC=0.8629
+  FRAME_STEP=30  AUC=0.8818
+
+총 소요: 7.3분
+결과 저장: /home/t26106/deepfake/saved_models/hyperparam_sweep_v2.json
+
+=== 최종 요약 ===
+EXP1 최고 conf: 0.3  AUC=0.8818
+EXP2 최고 v26조합: AUC=0.8818  {'v24': 0.2, 'v25': 0.5, 'v29': 0.3}
+EXP3 최고 가중치: {'v24': 0.2, 'v25': 0.55, 'v29': 0.25}  AUC=0.8822
+EXP4 최고 step: 30  AUC=0.8818

@@ -1,0 +1,44 @@
+{
+  "version": "v13_freq_only_df40",
+  "best_val_auc": 1.0,
+  "test_df40": {
+    "name": "TEST_V13",
+    "loss": 0.0019345541357472784,
+    "acc": 0.9995520465871549,
+    "f1": 0.9996693668374939,
+    "bal_acc": 0.9996239319983057,
+    "auc": 0.999987513913734
+  },
+  "cross_eval": {
+    "test_ff": {
+      "name": "test_ff",
+      "loss": 0.4836727709770372,
+      "acc": 0.15029999240525557,
+      "f1": 0.0,
+      "bal_acc": 0.5,
+      "auc": 0.5328039855558806
+    },
+    "test_dfdc": {
+      "name": "test_dfdc",
+      "loss": 0.5021031250024469,
+      "acc": 0.10699001426533523,
+      "f1": 0.0001331026221216558,
+      "bal_acc": 0.4997555023074193,
+      "auc": 0.5430845831854219
+    }
+  },
+  "model": "FreqOnlyXception (FAD 9ch + Xception in_chans=9 + Dropout 0.3)",
+  "params_M": 21.083028,
+  "data": "DF40 fake (sd2.1/DiT/SiT/simswap/sadtalker) + FF++/DFDC real",
+  "regularization": {
+    "mixup_alpha": 0.2,
+    "label_smoothing": 0.05,
+    "dropout": 0.3
+  },
+  "controlled_against_v11": "\ub370\uc774\ud130/transform/sampler/loss/lr/wd/bs/epochs/mixup/smoothing \ub3d9\uc77c. \ubcc0\uacbd \ubcc0\uc218 1\uac1c: \ubaa8\ub378 (F3NetLite \u2192 FreqOnlyXception).",
+  "env": {
+    "torch": "2.8.0+cu128",
+    "cudnn": 91002,
+    "cudnn_enabled": true
+  }
+}
