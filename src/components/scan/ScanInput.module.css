@@ -1,0 +1,215 @@
+.inputGroup {
+  margin-top: 3rem;
+  width: 100%;
+  max-width: 640px;
+  background: var(--bg-white);
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-md);
+  padding: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.02);
+  transition: border-color 0.2s;
+}
+
+.inputGroup:focus-within {
+  border-color: var(--accent-blue);
+}
+
+.inputRow {
+  display: flex;
+  align-items: center;
+  background: var(--surface-subtle);
+  border-radius: var(--radius-sm);
+  padding: 4px 16px;
+}
+
+.inputRow input[type='text'] {
+  flex-grow: 1;
+  border: none;
+  background: transparent;
+  padding: 16px 0;
+  font-size: 1rem;
+  color: var(--text-main);
+  outline: none;
+  font-family: var(--font-main);
+}
+
+.inputRow input::placeholder {
+  color: #bdbdbd;
+}
+
+.iconBtn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--text-muted);
+  padding: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-sm);
+  transition: all 0.2s;
+}
+
+.iconBtn:hover {
+  background: var(--border-light);
+  color: var(--text-main);
+}
+
+.iconBtn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.fileInput {
+  display: none;
+}
+
+.actionRow {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  padding: 0 8px 8px 8px;
+}
+
+.typeGroup {
+  display: inline-flex;
+  align-items: center;
+  background: var(--surface-subtle);
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-pill);
+  padding: 3px;
+  flex-shrink: 0;
+}
+
+.typeButton {
+  border: none;
+  background: transparent;
+  color: var(--text-muted);
+  border-radius: var(--radius-pill);
+  cursor: pointer;
+  font-family: var(--font-main);
+  font-size: 0.75rem;
+  font-weight: 600;
+  padding: 7px 10px;
+  transition: background 0.2s, color 0.2s;
+}
+
+.typeButtonActive {
+  background: var(--text-main);
+  color: var(--bg-white);
+}
+
+.consent {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.875rem;
+  color: var(--text-muted);
+  cursor: pointer;
+}
+
+.consent input[type='checkbox'] {
+  appearance: none;
+  -webkit-appearance: none;
+  width: 16px;
+  height: 16px;
+  border: 1.5px solid var(--border-light);
+  border-radius: 4px;
+  cursor: pointer;
+  position: relative;
+  flex-shrink: 0;
+}
+
+.consent input[type='checkbox']:checked {
+  background: var(--accent-blue);
+  border-color: var(--accent-blue);
+}
+
+.consent input[type='checkbox']:checked::after {
+  content: '';
+  position: absolute;
+  left: 4px;
+  top: 1px;
+  width: 4px;
+  height: 8px;
+  border: solid white;
+  border-width: 0 2px 2px 0;
+  transform: rotate(45deg);
+}
+
+.btnPrimary {
+  background: linear-gradient(135deg, var(--accent-blue), #2b2eff);
+  color: white;
+  border: none;
+  padding: 12px 24px;
+  border-radius: var(--radius-pill);
+  font-weight: 500;
+  font-size: 0.875rem;
+  cursor: pointer;
+  letter-spacing: 0.02em;
+  transition: transform 0.2s, box-shadow 0.2s;
+  font-family: var(--font-main);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.btnPrimary:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(0, 3, 255, 0.2);
+}
+
+.btnPrimary:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
+.beta {
+  font-size: 0.625rem;
+  background: rgba(255, 255, 255, 0.2);
+  padding: 2px 6px;
+  border-radius: 4px;
+  letter-spacing: 0.05em;
+}
+
+.errorText {
+  color: #FF3B30;
+  font-size: 0.8125rem;
+  padding: 0 8px 8px;
+  margin: 0;
+}
+
+@media (max-width: 480px) {
+  .inputGroup {
+    padding: 4px;
+  }
+
+  .inputRow {
+    padding: 4px 12px;
+  }
+
+  .actionRow {
+    flex-direction: column;
+    gap: 16px;
+    align-items: stretch;
+  }
+
+  .typeGroup {
+    width: 100%;
+  }
+
+  .typeButton {
+    flex: 1;
+  }
+
+  .btnPrimary {
+    width: 100%;
+    justify-content: center;
+  }
+}

@@ -1,0 +1,17 @@
+:root {
+  --bg-white: #FFFFFF;
+  --surface-subtle: #F8F9FA;
+  --text-main: #111111;
+  --text-muted: #86868B;
+  --border-light: #E5E5EA;
+  --accent-blue: #0003FF;
+  --btn-dark: #1D1D1F;
+
+  --radius-sm: 10px;
+  --radius-md: 20px;
+  --radius-lg: 40px;
+  --radius-pill: 999px;
+
+  --font-main: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  --container-w: 1200px;
+}

@@ -1,0 +1,48 @@
+.dotGrid {
+  position: absolute;
+  inset: 0;
+  background-image: radial-gradient(rgba(0, 3, 255, 0.15) 1.5px, transparent 1.5px);
+  background-size: 32px 32px;
+  animation: drift 60s linear infinite;
+  pointer-events: none;
+  z-index: 0;
+}
+
+@keyframes drift {
+  0% { background-position: 0 0; }
+  100% { background-position: 32px 32px; }
+}
+
+.glow {
+  position: fixed;
+  border-radius: 50%;
+  pointer-events: none;
+  z-index: 0;
+}
+
+.glowTopLeft {
+  width: 600px;
+  height: 600px;
+  background: rgba(0, 3, 255, 0.03);
+  filter: blur(120px);
+  top: -200px;
+  left: -200px;
+}
+
+.glowBottomRight {
+  width: 500px;
+  height: 500px;
+  background: rgba(0, 3, 255, 0.04);
+  filter: blur(100px);
+  bottom: 20%;
+  right: -150px;
+}
+
+.glowCenter {
+  width: 400px;
+  height: 400px;
+  background: rgba(0, 3, 255, 0.02);
+  filter: blur(80px);
+  top: 40%;
+  left: 10%;
+}

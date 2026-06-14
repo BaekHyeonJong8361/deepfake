@@ -1,0 +1,54 @@
+.scanPage {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+}
+
+.content {
+  flex-grow: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  text-align: center;
+  position: relative;
+  z-index: 10;
+  padding-bottom: 10vh;
+}
+
+.korSub {
+  font-size: 1.125rem;
+  color: var(--text-muted);
+  letter-spacing: -0.01em;
+  margin-top: 1rem;
+}
+
+.trustCopy {
+  margin-top: 1.5rem;
+  font-size: 0.875rem;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--text-main);
+  font-weight: 500;
+}
+
+.trustCopy svg {
+  color: var(--accent-blue);
+}
+
+.footer {
+  text-align: center;
+  padding: 12px 0;
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  position: relative;
+  z-index: 10;
+}
+
+.footer a {
+  color: var(--text-muted);
+  margin: 0 8px;
+  font-weight: 400;
+}

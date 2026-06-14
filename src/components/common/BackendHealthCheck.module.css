@@ -1,0 +1,38 @@
+.badge {
+  margin-top: 1rem;
+  min-height: 32px;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-radius: 999px;
+  padding: 7px 12px;
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--text-muted);
+  font-size: 0.75rem;
+  font-weight: 600;
+  line-height: 1;
+}
+
+.dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: currentColor;
+}
+
+.checking {
+  color: var(--text-muted);
+}
+
+.connected {
+  border-color: rgba(0, 195, 137, 0.34);
+  background: rgba(0, 195, 137, 0.12);
+  color: #00c389;
+}
+
+.failed {
+  border-color: rgba(255, 78, 78, 0.34);
+  background: rgba(255, 78, 78, 0.12);
+  color: #ff4e4e;
+}

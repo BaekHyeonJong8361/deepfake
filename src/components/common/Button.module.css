@@ -1,0 +1,46 @@
+.btn {
+  border: none;
+  border-radius: var(--radius-pill);
+  font-weight: 500;
+  font-size: 0.875rem;
+  cursor: pointer;
+  letter-spacing: 0.02em;
+  transition: transform 0.2s, box-shadow 0.2s, border-color 0.2s;
+  padding: 12px 24px;
+  font-family: var(--font-main);
+}
+
+.primary {
+  background: linear-gradient(135deg, var(--accent-blue), #2b2eff);
+  color: white;
+}
+
+.primary:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(0, 3, 255, 0.2);
+}
+
+.dark {
+  background: var(--btn-dark);
+  color: white;
+}
+
+.dark:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.outline {
+  background: transparent;
+  color: var(--text-main);
+  border: 1px solid var(--border-light);
+}
+
+.outline:hover {
+  border-color: var(--text-main);
+}
+
+.large {
+  font-size: 1rem;
+  padding: 16px 32px;
+}

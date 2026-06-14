@@ -1,0 +1,72 @@
+.hero {
+  background: var(--surface-subtle);
+  padding: 160px 0;
+  overflow: hidden;
+  border-top: 1px solid var(--border-light);
+  border-bottom: 1px solid var(--border-light);
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 64px;
+  align-items: center;
+}
+
+.title {
+  font-size: clamp(2.5rem, 4vw, 3.5rem);
+  display: block;
+}
+
+.dot {
+  color: var(--text-main);
+}
+
+.korSub {
+  color: var(--text-main);
+  font-weight: 500;
+  font-size: 1.125rem;
+  letter-spacing: -0.01em;
+  margin-top: 1rem;
+}
+
+.desc {
+  margin-top: 1.5rem;
+  font-size: 1.125rem;
+  max-width: 480px;
+  line-height: 1.6;
+}
+
+.actions {
+  margin-top: 2.5rem;
+  display: flex;
+  gap: 16px;
+}
+
+.graphic {
+  position: relative;
+  height: 520px;
+  overflow: hidden;
+  border-radius: 16px;
+}
+
+@media (max-width: 1024px) {
+  .grid {
+    grid-template-columns: 1fr;
+    gap: 48px;
+  }
+
+  .graphic {
+    height: 300px;
+  }
+}
+
+@media (max-width: 768px) {
+  .hero {
+    padding: 80px 0;
+  }
+
+  .actions {
+    flex-direction: column;
+  }
+}

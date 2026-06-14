@@ -1,0 +1,747 @@
+import { Link } from 'react-router-dom';
+import { useState, useEffect, useRef, useCallback } from 'react';
+import type { AnalysisResult } from '../lib/api';
+import { useVideoStore } from '../stores/videoStore';
+import s from './ScanAnalysisPage.module.css';
+
+/* ── helpers ── */
+function hexStr(len: number) {
+  let r = '';
+  for (let i = 0; i < len; i++) r += Math.floor(Math.random() * 16).toString(16).toUpperCase();
+  return r;
+}
+
+const STEPS = [
+  'Extracting spatial features...',
+  'Analyzing temporal consistency...',
+  'Checking facial landmark alignment...',
+  'Running CNN-LSTM model...',
+  'Compiling confidence report...',
+];
+
+const CLASSES = ['Temporal-Sync', 'Spatial-Blend', 'Mesh-Deform', 'Lighting-Incon'];
+const VECTORS = ['FACE.01', 'MOUTH.L', 'EYE.R', 'BG.BLEND'];
+const NUM_ROWS = 16;
+
+/* ── Table data generator ── */
+function makeTableData() {
+  const rows: {
+    time: string;
+    frameId: string;
+    vector: string;
+    classification: string;
+    score: number;
+    variance: number;
+    isPositive: boolean;
+  }[] = [];
+  for (let i = 0; i < 40; i++) {
+    const scoreBase = i > 15 && i < 30 ? 0.6 + Math.random() * 0.38 : 0.1 + Math.random() * 0.4;
+    rows.push({
+      time: `00:00:${(i * 0.1).toFixed(3).padStart(6, '0')}`,
+      frameId: `FRM-${Math.floor(1000 + i * 4.2)}`,
+      vector: VECTORS[Math.floor(Math.random() * VECTORS.length)],
+      classification: CLASSES[Math.floor(Math.random() * CLASSES.length)],
+      score: parseFloat(scoreBase.toFixed(4)),
+      variance: parseFloat((Math.random() * 0.5).toFixed(3)),
+      isPositive: Math.random() > 0.5,
+    });
+  }
+  return rows;
+}
+
+/* ── Topography bar data generator ── */
+function makeTopoData(n = 120) {
+  const bars: { height: number; isAnomalous: boolean; timeLabel?: string }[] = [];
+  for (let i = 0; i < n; i++) {
+    let h = 10 + Math.random() * 20;
+    if (i > 50 && i < 100) {
+      const d = Math.abs(75 - i);
+      const spike = Math.max(0, 1 - d / 25);
+      h += spike * 60 + Math.random() * 20;
+    }
+    h = Math.min(95, h);
+    bars.push({ height: h, isAnomalous: h > 75, timeLabel: (i * 0.1).toFixed(1) + "s" });
+  }
+  return bars;
+}
+
+function makeTopoDataFromResult(result: AnalysisResult | null) {
+  if (!result?.per_frame_probs?.length) return makeTopoData();
+  const threshold = (result.raw as any)?.threshold ?? 0.11;
+  return result.per_frame_probs.map((prob, index) => {
+    let anomalyIndex = 0;
+    if (prob >= threshold) {
+        const ratio = Math.min(1, (prob - threshold) / (1 - threshold));
+        anomalyIndex = 88.5 + (ratio * 11.4); 
+    } else {
+        const ratio = Math.max(0, prob / threshold); anomalyIndex = 12.4 + (ratio * 50.1);
+    }
+    const height = Math.max(5, Math.min(95, anomalyIndex));
+    return { height, isAnomalous: prob >= threshold, timeLabel: (result.suspicious_frames[index] as any)?.time || (index * 1.0).toFixed(1) + "s" };
+  });
+}
+
+function makeTableDataFromResult(result: AnalysisResult | null) {
+  if (!result) return makeTableData();
+
+  if (result.suspicious_frames.length) {
+    return result.suspicious_frames.map((frame) => ({
+      time: (frame as any).time || "frame " + frame.frameIndex,
+      frameId: `FRM-${frame.frameIndex}`,
+      vector: 'XAI.HEATMAP',
+      classification: result.final_verdict.toUpperCase(),
+      score: frame.probability ?? 0,
+      variance: Math.abs((frame.probability ?? 0) - 0.5),
+      isPositive: (frame.probability ?? 0) >= 0.5,
+    }));
+  }
+
+  if (result.per_frame_probs?.length) {
+    return result.per_frame_probs.slice(0, 40).map((prob, index) => ({
+      time: `00:00:${(index * 0.1).toFixed(3).padStart(6, '0')}`,
+      frameId: `FRM-${index}`,
+      vector: 'PER_FRAME',
+      classification: prob >= ((result.raw as any)?.threshold ?? 0.081) ? 'ANOMALY' : 'NORMAL',
+      score: prob,
+      variance: Math.abs(prob - 0.5),
+      isPositive: prob >= 0.5,
+    }));
+  }
+
+  return makeTableData();
+}
+
+/* ── Radial node data ── */
+// function makeRadialNodes removed
+
+/* ━━━━━━━━━━━━ Component ━━━━━━━━━━━━ */
+export default function ScanAnalysisPage() {
+  const [view, setView] = useState<'loading' | 'results'>('loading');
+  const [progress, setProgress] = useState(0);
+  const [stepText, setStepText] = useState(STEPS[0]);
+  const { submitVideoUrl,
+    currentVideoId,
+    targetLabel,
+    status,
+    result,
+    error,
+    fetchStatus,
+    fetchResult,
+    resetAnalysis: resetVideoAnalysis,
+  } = useVideoStore();
+
+  /* Matrix state */
+  const [matrixRows, setMatrixRows] = useState<{ data: string; state: 'idle' | 'active' | 'fading' }[]>(
+    () => Array.from({ length: NUM_ROWS }, () => ({ data: '-- -- -- --', state: 'idle' as const }))
+  );
+  const [scannerRow, setScannerRow] = useState(0);
+  const scannerRowRef = useRef(0);
+
+  /* Params */
+  const [param1, setParam1] = useState('0.045');
+  const [param2, setParam2] = useState('0.920');
+
+  /* Canvas refs */
+  const canvas1Ref = useRef<HTMLCanvasElement>(null);
+  const canvas2Ref = useRef<HTMLCanvasElement>(null);
+  const graphAnimRef = useRef<number>(0);
+
+  /* Results data (lazy) */
+  const [topoData, setTopoData] = useState<ReturnType<typeof makeTopoData>>([]);
+  const [topoAnimated, setTopoAnimated] = useState(false);
+  const [tableData, setTableData] = useState<ReturnType<typeof makeTableData>>([]);
+  // Removed radialData
+  // Removed radialExpanded
+
+  /* ── Matrix scanner interval ── */
+  useEffect(() => {
+    if (view !== 'loading') return;
+    const id = setInterval(() => {
+      const cur = scannerRowRef.current;
+      const prev = cur === 0 ? NUM_ROWS - 1 : cur - 1;
+      const val1 = hexStr(4);
+      const val2 = hexStr(4);
+
+      setMatrixRows((rows) =>
+        rows.map((r, i) => {
+          if (i === cur) return { data: `${val1} ${val2} [EXTRACT]`, state: 'active' };
+          if (i === prev) return { ...r, state: 'fading' };
+          return r;
+        })
+      );
+      setScannerRow(cur);
+      scannerRowRef.current = (cur + 1) % NUM_ROWS;
+
+      if (Math.random() > 0.7) setParam1((0.04 + Math.random() * 0.01).toFixed(3));
+      if (Math.random() > 0.7) setParam2((0.9 + Math.random() * 0.05).toFixed(3));
+    }, 100);
+    return () => clearInterval(id);
+  }, [view]);
+
+  /* ── Canvas graphs ── */
+  const initGraph = useCallback(
+    (canvas: HTMLCanvasElement, color: string, speed: number, complexity: number) => {
+      const ctx = canvas.getContext('2d');
+      if (!ctx) return;
+      const data: number[] = new Array(60).fill(0.5);
+      let time = 0;
+
+      function resize() {
+        canvas.width = canvas.parentElement!.offsetWidth;
+        canvas.height = canvas.parentElement!.offsetHeight;
+      }
+      resize();
+      window.addEventListener('resize', resize);
+
+      function draw() {
+        time += speed;
+        const noise = (Math.random() - 0.5) * 0.1;
+        const trend = Math.sin(time * complexity) * 0.3 + 0.5;
+        data.push(Math.max(0.1, Math.min(0.9, trend + noise)));
+        data.shift();
+
+        ctx!.clearRect(0, 0, canvas.width, canvas.height);
+
+        ctx!.strokeStyle = '#E5E5EA';
+        ctx!.lineWidth = 1;
+        ctx!.beginPath();
+        ctx!.moveTo(0, canvas.height / 2);
+        ctx!.lineTo(canvas.width, canvas.height / 2);
+        ctx!.stroke();
+
+        ctx!.strokeStyle = color;
+        ctx!.lineWidth = 1.5;
+        ctx!.beginPath();
+        const step = canvas.width / (data.length - 1);
+        for (let i = 0; i < data.length; i++) {
+          const x = i * step;
+          const y = canvas.height - data[i] * canvas.height;
+          if (i === 0) ctx!.moveTo(x, y);
+          else ctx!.lineTo(x, y);
+        }
+        ctx!.stroke();
+
+        const lastY = canvas.height - data[data.length - 1] * canvas.height;
+        ctx!.beginPath();
+        ctx!.arc(canvas.width - 2, lastY, 3, 0, Math.PI * 2);
+        ctx!.fillStyle = color;
+        ctx!.fill();
+
+        graphAnimRef.current = requestAnimationFrame(draw);
+      }
+      draw();
+      return () => window.removeEventListener('resize', resize);
+    },
+    []
+  );
+
+  useEffect(() => {
+    if (view !== 'loading') return;
+    const c1 = canvas1Ref.current;
+    const c2 = canvas2Ref.current;
+    if (!c1 || !c2) return;
+
+    const cleanup1 = initGraph(c1, '#0003FF', 0.05, 1);
+    const cleanup2 = initGraph(c2, '#111111', 0.03, 2);
+
+    return () => {
+      cancelAnimationFrame(graphAnimRef.current);
+      cleanup1?.();
+      cleanup2?.();
+    };
+  }, [view, initGraph]);
+
+  /* ── Progress ── */
+  useEffect(() => {
+    if (view !== 'loading' || currentVideoId) return;
+    let prog = 0;
+    const id = setInterval(() => {
+      prog += Math.random() * 2.5;
+      if (prog > 100) prog = 100;
+      setProgress(prog);
+      const stepIdx = Math.floor((prog / 100) * STEPS.length);
+      if (STEPS[stepIdx]) setStepText(STEPS[stepIdx]);
+      if (prog >= 100) {
+        clearInterval(id);
+        setTimeout(() => showResults(), 500);
+      }
+    }, 100);
+    return () => clearInterval(id);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentVideoId, view]);
+
+  useEffect(() => {
+    if (!currentVideoId || view !== 'loading') return;
+
+    let isMounted = true;
+    let prog = 0;
+    const poll = async () => {
+      try {
+        const nextStatus = await fetchStatus(currentVideoId);
+        if (!isMounted) return;
+
+        if (nextStatus === 'completed') {
+          setProgress(100);
+          setStepText('Compiling confidence report...');
+          const completedResult = await fetchResult(currentVideoId);
+          if (isMounted) setTimeout(() => showResults(completedResult), 300);
+          return;
+        }
+
+        if (nextStatus === 'failed') {
+          setStepText('Analysis failed');
+          return;
+        }
+
+        prog = Math.min(92, prog + 8);
+        setProgress(prog);
+        const stepIdx = Math.min(STEPS.length - 1, Math.floor((prog / 100) * STEPS.length));
+        setStepText(STEPS[stepIdx]);
+      } catch {
+        if (isMounted) setStepText('Analysis status unavailable');
+      }
+    };
+
+    poll();
+    const id = setInterval(poll, 1800);
+    return () => {
+      isMounted = false;
+      clearInterval(id);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentVideoId, view]);
+
+  /* ── Switch to results ── */
+  function showResults(resultOverride = result) {
+    cancelAnimationFrame(graphAnimRef.current);
+    setTopoData(makeTopoDataFromResult(resultOverride));
+    setTableData(makeTableDataFromResult(resultOverride));
+    // setRadialData(makeRadialNodes());
+    // setRadialExpanded(false);
+    setTopoAnimated(false);
+    setView('results');
+
+    setTimeout(() => {
+      setTopoAnimated(true);
+      // setRadialExpanded(true);
+    }, 300);
+  }
+
+  
+  const handleRerun = async (newModel: string) => {
+    if (!targetLabel) return;
+    const currentLabel = targetLabel;
+    resetAnalysis();
+    try {
+      await submitVideoUrl(currentLabel, newModel as any);
+    } catch (e) { console.error(e); }
+  };
+
+  function resetAnalysis() {
+    resetVideoAnalysis();
+    setProgress(0);
+    setStepText(STEPS[0]);
+    scannerRowRef.current = 0;
+    setScannerRow(0);
+    setMatrixRows(Array.from({ length: NUM_ROWS }, () => ({ data: '-- -- -- --', state: 'idle' })));
+    setView('loading');
+  }
+
+  const pctStr = `${Math.floor(progress)}%`;
+  const targetName = targetLabel ?? 'video_evidence_73A.mp4';
+  const isT2V = result?.analysis_type === 'T2V';
+  const t2vScore = ((result?.t2v_score ?? 0) / 100).toFixed(2);
+  
+  const verdict = result?.final_verdict ?? 'AI GENERATED';
+  const scoreText = verdict === 'FAKE' ? 'CRITICAL' : 'SECURE';
+  const verdictText = verdict.toUpperCase();
+  const rawScore = (result?.raw as any)?.score ?? ((result?.deepfake_score ?? 94) / 100);
+  const threshold = (result?.raw as any)?.threshold ?? 0.081;
+  let anomalyIndex = 0;
+  if (rawScore >= threshold) {
+      const ratio = Math.min(1, (rawScore - threshold) / (1 - threshold));
+      anomalyIndex = 88.5 + (ratio * 11.4);
+  } else {
+      const ratio = Math.max(0, rawScore / threshold);
+      anomalyIndex = 12.4 + (ratio * 35.1);
+  }
+  const displayIndex = anomalyIndex.toFixed(1);
+  const suspiciousCount = result?.suspicious_frames.length;
+
+  return (
+    <div className={s.page}>
+      {/* ── Header ── */}
+      <header className={s.header}>
+        <Link to="/" className={s.logoWrap} style={{ textDecoration: "none", color: "inherit", cursor: "pointer" }}>
+          <svg viewBox="0 0 24 24" fill="none" className={s.logoIcon}>
+            <circle cx="9" cy="12" r="7" stroke="currentColor" strokeWidth="2" />
+            <circle cx="15" cy="12" r="7" stroke="currentColor" strokeWidth="2" strokeDasharray="4 4" />
+          </svg>
+          Solomon AI 
+        </Link>
+        <div className={s.headerMeta}>
+          <div className={s.metaItem}>
+            <span className={s.metaLabel}>Target</span>
+            <span className={s.metaValue}>{targetName}</span>
+          </div>
+          <div className={s.metaItem}>
+            <span className={s.metaLabel}>System</span>
+            <span className={s.statusOnline}>
+              <span className={s.statusDot} />
+              {status ? status.toUpperCase() : 'ONLINE'}
+            </span>
+          </div>
+        </div>
+      </header>
+
+      {/* ── Main ── */}
+      <main className={s.main}>
+        {/* ── Loading View ── */}
+        <div className={`${s.viewLoading} ${view !== 'loading' ? s.hidden : ''}`}>
+          <div className={s.loadingCard}>
+            {/* Top bar */}
+            <div className={s.loadingTopBar}>
+              <div className={s.topBarGroup}>
+                <div>
+                  <span>SYS</span> <b className={s.topBarValue}>DEEPFAKE_ENG</b>
+                </div>
+                <div>
+                  <span className={s.scanIndicator}>►</span>{' '}
+                  <b className={s.topBarValue}>SCANNING</b>
+                </div>
+              </div>
+              <div className={s.topBarGroup}>
+                <div>
+                  <span>MEM</span> <b className={s.topBarValue}>4.2GB</b>
+                </div>
+                <div>
+                  <span>PROG</span> <b className={s.topBarBlue}>{pctStr}</b>
+                </div>
+              </div>
+            </div>
+
+            {/* Loading grid */}
+            <div className={s.loadingGrid}>
+              {/* Matrix panel */}
+              <div className={s.matrixPanel}>
+                <div className={s.matrixHeader}>
+                  <div>IDX</div>
+                  <div className={s.matrixHeaderLeft}>WEIGHT_HASH</div>
+                  <div>ST</div>
+                </div>
+                <div className={s.matrixBody}>
+                  <div className={s.scannerBar} style={{ top: scannerRow * 28 }} />
+                  {matrixRows.map((row, i) => (
+                    <div className={s.matrixRow} key={i}>
+                      <div className={s.matrixIdx}>{i.toString(16).toUpperCase().padStart(2, '0')}</div>
+                      <div
+                        className={`${s.matrixData} ${
+                          row.state === 'active' ? s.matrixDataActive : row.state === 'fading' ? s.matrixDataFading : ''
+                        }`}
+                      >
+                        {row.data}
+                      </div>
+                      <div className={s.matrixSt}>:</div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Right panel */}
+              <div className={s.rightPanel}>
+                <div className={s.sectionHeader}>
+                  <span className={s.sectionTitle}>Neural Parameters</span>
+                  <span className={s.sectionTag}>CNN-LSTM ARCHITECTURE</span>
+                </div>
+
+                {/* Params grid */}
+                <div className={s.paramsGrid}>
+                  <div className={`${s.paramCell} ${s.paramCellLeft}`}>
+                    <div className={s.paramRow}>
+                      <span>L_RATE</span>
+                      <span className={s.paramValue}>{param1}</span>
+                    </div>
+                    <div className={s.paramSlider}>
+                      <div className={s.paramKnob} style={{ left: '45%' }} />
+                    </div>
+                  </div>
+                  <div className={s.paramCell}>
+                    <div className={s.paramRow}>
+                      <span>DECAY</span>
+                      <span className={s.paramValue}>{param2}</span>
+                    </div>
+                    <div className={s.paramSlider}>
+                      <div className={s.paramKnob} style={{ left: '92%' }} />
+                    </div>
+                  </div>
+                  <div className={`${s.paramCell} ${s.paramCellLeft}`}>
+                    <div className={s.paramRow}>
+                      <span>BATCH</span>
+                      <span className={s.paramValue}>64</span>
+                    </div>
+                    <div className={s.paramSlider}>
+                      <div className={s.paramKnob} style={{ left: '30%' }} />
+                    </div>
+                  </div>
+                  <div className={s.paramCell}>
+                    <div className={s.paramRow}>
+                      <span>FRAMES</span>
+                      <span className={s.paramValue}>1248</span>
+                    </div>
+                    <div className={s.paramSlider}>
+                      <div className={s.paramKnob} style={{ left: '75%' }} />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Graphs section header */}
+                <div className={s.sectionHeader}>
+                  <span className={s.sectionTitle}>Real-time Extraction</span>
+                  <span className={s.sectionTag}>TENSOR_FLOW</span>
+                </div>
+
+                {/* Canvas graphs */}
+                <div className={s.graphsArea}>
+                  <div className={s.graphBox}>
+                    <span className={s.graphLabel}>Facial Mesh Loss</span>
+                    <canvas ref={canvas1Ref} className={s.graphCanvas} />
+                  </div>
+                  <div className={s.graphBox}>
+                    <span className={s.graphLabel}>Temporal Consistency</span>
+                    <canvas ref={canvas2Ref} className={s.graphCanvas} />
+                  </div>
+                </div>
+
+                {/* Progress */}
+                <div className={s.progressSection}>
+                  <div className={s.progressInfo}>
+                  <span>{stepText}</span>
+                  <span className={s.progressPct}>{pctStr}</span>
+                </div>
+                {error && <div className={s.progressInfo}>{error}</div>}
+                <div className={s.progressTrack}>
+                    <div className={s.progressFill} style={{ width: pctStr }} />
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* ── Results View ── */}
+        <div className={`${s.viewResults} ${view !== 'results' ? s.hidden : ''}`}>
+          {/* Results header */}
+          <div className={s.resultsHeader}>
+            <div>
+              <h1 className={s.resultsTitle}>Analysis Report</h1>
+              <p className={s.resultsSubtitle}>
+                {targetName} • {result?.engine_label || "Standard Engine"} • {result?.xai_heatmap_url ? "XAI forensic evidence available" : "Analyzed report"}
+              </p>
+            </div>
+            
+            <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
+              <span style={{ fontSize: '0.65rem', color: 'var(--text-muted)', fontWeight: 700, letterSpacing: '0.05em' }}>SWAP ENGINE:</span>
+              <div style={{ display: 'flex', background: 'rgba(0,0,0,0.05)', padding: '3px', borderRadius: '999px', border: '1px solid var(--border-light)' }}>
+                {['RYZE', 'LEE_SIN', 'SHEN', 'RAMMUS'].map((m) => (
+                  <button
+                    key={m}
+                    onClick={() => handleRerun(m)}
+                    style={{
+                      padding: '5px 12px',
+                      fontSize: '0.65rem',
+                      borderRadius: '999px',
+                      border: 'none',
+                      background: result?.engine_label?.includes(m) ? 'var(--accent-blue)' : 'transparent',
+                      color: result?.engine_label?.includes(m) ? '#fff' : 'var(--text-main)',
+                      cursor: 'pointer',
+                      fontWeight: 700,
+                      transition: 'all 0.2s'
+                    }}
+                  >
+                    {m}
+                  </button>
+                ))}
+              </div>
+            </div>
+            <button className={s.newAnalysisBtn} onClick={resetAnalysis}>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M21 12a9 9 0 1 1-9-9c2.52 0 4.93 1 6.74 2.74L21 8" />
+                <path d="M21 3v5h-5" />
+              </svg>
+              Run New Analysis
+            </button>
+          </div>
+
+          {/* Dashboard grid */}
+          <div className={`${s.dashGrid} ${s.fadeEnter} ${view === 'results' ? s.fadeEnterActive : ''}`}>
+            {/* Stat cards */}
+            <div className={s.statsRow}>
+              {/* Verdict */}
+              <div className={`${s.statCard} ${s.statCardBlue}`}>
+                <div className={s.statTop}>
+                  <span className={`${s.statLabel} ${s.statLabelWhite}`}>Verdict</span>
+                  <span className={`${s.statIndex} ${s.statIndexWhite}`}>01</span>
+                </div>
+                <div>
+                  <div className={s.statBigValue} style={{ fontSize: "2.5rem", color: verdict === "FAKE" ? "#ff4444" : "#44ff44" }}>{scoreText}</div>
+                  <div className={s.statDesc}>{verdictText}</div>
+                </div>
+              </div>
+              {/* Temporal */}
+              <div className={s.statCard}>
+                <div className={s.statTop}>
+                  <span className={s.statLabel}>{isT2V ? "Generative AI (T2V) Score" : "Deepfake Anomaly Index"}</span>
+                  <span className={`${s.statIndex} ${s.statIndexMuted}`}>02</span>
+                </div>
+                <div>
+                  <div className={`${s.statBigValue} ${s.statBigValue4xl}`}>{isT2V ? t2vScore : displayIndex}</div>
+                  <div className={s.statDescMuted}>{isT2V ? "Frequency deviation probability" : "Normalized artifact severity (0-100)"}</div>
+                </div>
+              </div>
+              {/* Spatial */}
+              <div className={s.statCard}>
+                <div className={s.statTop}>
+                  <span className={s.statLabel}>{isT2V ? "Temporal Inconsistency" : "Facial Texture Analysis"}</span>
+                  <span className={`${s.statIndex} ${s.statIndexMuted}`}>03</span>
+                </div>
+                <div>
+                  <div className={`${s.statBigValue} ${s.statBigValue4xl}`}>{suspiciousCount ?? '12.4k'}</div>
+                  <div className={s.statDescMuted}>{isT2V ? "Suspicious inter-frame changes" : "Analyzed Artifact Regions"}</div>
+                </div>
+              </div>
+              {/* System Load */}
+              <div className={s.statCard}>
+                <div className={s.statTop}>
+                  <span className={s.statLabel}>System Load / Conf</span>
+                  <span className={`${s.statIndex} ${s.statIndexMuted}`}>04</span>
+                </div>
+                <div>
+                  <div className={`${s.statBigValue} ${s.statBigValue4xl}`}>High</div>
+                  <div className={s.statDescMuted}>Model confidence threshold met</div>
+                </div>
+              </div>
+            </div>
+
+            {/* Topography chart */}
+            <div className={s.topoCell}>
+              <div className={s.topoHeader}>
+                <div>
+                  <span className={s.topoSectionLabel}>Macro Observation</span>
+                  <h2 className={s.topoTitle}>
+                    Frame-by-Frame <span className={s.topoTitleMuted}>Anomaly Topography.</span>
+                  </h2>
+                </div>
+                <div className={s.topoAxisLabels}>
+                  <span className={s.topoAxisY}>Y: ANOMALY SCORE</span>
+                  <span className={s.topoAxisX}>X: TIME (S)</span>
+                </div>
+              </div>
+              <div className={s.topoContainer}>
+                <div className={s.topoDashLine} style={{ bottom: '25%' }} />
+                <div className={s.topoDashLine} style={{ bottom: '50%' }} />
+                <div className={`${s.topoDashLine} ${s.topoDashLineThreshold}`} style={{ bottom: '88.5%' }}>
+                  <span className={s.topoThresholdLabel}>THRESHOLD (CRITICAL)</span>
+                </div>
+                {topoData.map((bar, i) => (
+                  <div
+                    key={i}
+                    className={`${s.topoBar} ${bar.isAnomalous ? s.topoBarBlue : ''}`}
+                    style={{ height: topoAnimated ? `${bar.height}%` : '0%', transitionDelay: `${i * 10}ms` }}
+                  >
+                    {(i === 0 || i === Math.floor((topoData.length - 1) / 2) || i === topoData.length - 1) && <span className={s.topoBarLabel}>{bar.timeLabel}</span>}
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Advanced XAI Cell */}
+            <div className={s.radialCell} style={{ display: 'flex', flexDirection: 'column', padding: '24px', gridRow: 'span 2', height: '360px', overflowY: 'auto' }}>
+              <div className={s.radialHeader} style={{ marginBottom: '16px' }}>
+                <span className={s.radialSectionLabel}>Advanced Forensic XAI</span>
+                <div className={s.radialTitle}>Multi-modal AI Evidence</div>
+              </div>
+              
+              {/* 3. Side-by-Side Images */}
+              <div style={{ display: 'flex', gap: '12px', height: '220px', marginBottom: '20px' }}>
+                <div style={{ flex: 1, backgroundColor: '#000', borderRadius: '8px', overflow: 'hidden', position: 'relative' }}>
+                  <div style={{ position: 'absolute', top: 4, left: 8, fontSize: '0.7rem', color: '#fff', background: 'rgba(0,0,0,0.5)', padding: '2px 6px', borderRadius: '4px' }}>Original Target</div>
+                  {result?.original_face_url && <img src={result.original_face_url} alt="Original" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />}
+                </div>
+                <div style={{ flex: 1, backgroundColor: '#000', borderRadius: '8px', overflow: 'hidden', position: 'relative' }}>
+                  <div style={{ position: 'absolute', top: 4, left: 8, fontSize: '0.7rem', color: '#fff', background: 'rgba(0,0,0,0.5)', padding: '2px 6px', borderRadius: '4px' }}>GradCAM Heatmap</div>
+                  {result?.xai_heatmap_url && <img src={result.xai_heatmap_url} alt="Heatmap" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />}
+                </div>
+              </div>
+
+              {/* 1. RGB vs Freq Contribution */}
+              <div style={{ marginBottom: '20px' }}>
+                <div style={{ fontSize: '0.85rem', color: '#aaa', marginBottom: '8px', fontWeight: 600 }}>Feature Contribution Analysis</div>
+                <div style={{ display: 'flex', height: '10px', background: '#333', borderRadius: '5px', overflow: 'hidden' }}>
+                  <div style={{ width: (result?.rgb_contribution ?? 50) + '%', background: '#4a90e2' }}></div>
+                  <div style={{ width: (result?.freq_contribution ?? 50) + '%', background: '#a04ae2' }}></div>
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.75rem', marginTop: '4px', color: '#888' }}>
+                  <span><span style={{color: '#4a90e2'}}>■</span> Spatial Textures ({Number(result?.rgb_contribution ?? 50).toFixed(1)}%)</span>
+                  <span><span style={{color: '#a04ae2'}}>■</span> Frequency Specs ({Number(result?.freq_contribution ?? 50).toFixed(1)}%)</span>
+                </div>
+              </div>
+
+              {/* 2. Top Regions */}
+              <div style={{ marginBottom: '20px' }}>
+                <div style={{ fontSize: '0.85rem', color: '#aaa', marginBottom: '8px', fontWeight: 600 }}>Critical Region Matrix (Top 2)</div>
+                <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                  {result?.top_regions?.map((r, i) => (
+                    <span key={i} style={{ background: 'rgba(255, 68, 68, 0.15)', color: '#ff6b6b', padding: '6px 10px', borderRadius: '4px', fontSize: '0.8rem', border: '1px solid rgba(255,68,68,0.3)' }}>
+                      ⚠️ {r.region} <strong>({Math.round(r.ratio * 100)}%)</strong>
+                    </span>
+                  ))}
+                  {!result?.top_regions && <span style={{color: '#666', fontSize: '0.8rem'}}>Calculating regions...</span>}
+                </div>
+              </div>
+
+              {/* 4. Forensic Report */}
+              <div style={{ marginTop: '20px', padding: '18px', background: verdict === 'FAKE' ? '#fff1f0' : '#f6ffed', border: '1px solid ' + (verdict === 'FAKE' ? '#ffa39e' : '#b7eb8f'), borderLeft: '5px solid ' + (verdict === 'FAKE' ? '#ff4d4f' : '#52c41a'), borderRadius: '8px', fontSize: '0.9rem', color: verdict === 'FAKE' ? '#820014' : '#135200', lineHeight: '1.6', fontWeight: '500', wordBreak: 'keep-all' }}>
+                {result?.forensic_report || 'Generating forensic summary...'}
+              </div>
+            </div>
+
+            {/* Data table */}
+            <div className={s.tableCell} style={{ gridColumn: "span 12", height: "300px", overflowY: "auto" }}>
+              <table className={s.dataTable}>
+                <thead>
+                  <tr>
+                    <th>Timestamp</th>
+                    <th>Frame ID</th>
+                    <th>Artifact Vector</th>
+                    <th>Classification</th>
+                    <th className={s.thRight}>Anomaly Score</th>
+                    <th className={s.thRight}>Variance (&Delta;)</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {tableData.map((row, i) => (
+                    <tr key={i}>
+                      <td className={s.tdMuted}>{row.time}</td>
+                      <td style={{fontFamily: "monospace"}}>{row.frameId}</td>
+                      <td className={s.tdMuted}>{row.vector}</td>
+                      <td><span style={{padding: "2px 6px", borderRadius: "4px", fontSize: "0.8em", backgroundColor: row.classification === "FAKE" ? "rgba(255,0,0,0.2)" : "rgba(0,255,0,0.2)", color: row.classification === "FAKE" ? "#ff6b6b" : "#6bff6b"}}>{row.classification}</span></td>
+                      <td className={`${s.tdRight} ${row.classification === 'ANOMALY' || row.classification === 'FAKE' ? s.tdAnomaly : s.tdNormal}`}>
+                        {row.score.toFixed(4)}
+                      </td>
+                      <td className={`${s.tdRight} ${row.isPositive ? s.tdPositive : s.tdNegative}`}>
+                        {row.isPositive ? '+' : '-'}
+                        {row.variance.toFixed(3)}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </main>
+    </div>
+  );
+}
+
+// Force build hash update: 1779368529736

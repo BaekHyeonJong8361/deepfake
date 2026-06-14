@@ -1,0 +1,444 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>딥페이크 탐지 v3 — 2-Stage Cascade (v15-v20)</title>
+<style>
+  :root {
+    --bg: #f4f7f9; --card: #fff; --border: #e3e8ee;
+    --primary: #2563eb; --primary-h: #1d4ed8;
+    --red: #dc2626; --green: #16a34a; --warn: #f59e0b;
+    --purple: #7c3aed; --purple-bg: #f5f3ff;
+    --muted: #6b7280; --text: #1f2937;
+  }
+  * { box-sizing: border-box; }
+  body {
+    font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, sans-serif;
+    background: var(--bg); color: var(--text);
+    margin: 0; padding: 24px;
+  }
+  .wrap { max-width: 1100px; margin: 0 auto; }
+  .card {
+    background: var(--card); border: 1px solid var(--border);
+    border-radius: 12px; padding: 22px; margin-bottom: 18px;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.04);
+  }
+  h1 { margin: 0 0 8px; font-size: 22px; }
+  .sub { color: var(--muted); font-size: 13px; margin-bottom: 18px; }
+  label { display: block; font-weight: 600; margin: 12px 0 6px; font-size: 14px; }
+  input[type="text"], input[type="url"] {
+    width: 100%; padding: 10px 12px; border: 1px solid var(--border);
+    border-radius: 8px; font-size: 14px; font-family: ui-monospace, monospace;
+  }
+  .tabs {
+    display: flex; gap: 6px; margin-bottom: 16px;
+    border-bottom: 1px solid var(--border); padding-bottom: 0;
+  }
+  .tab {
+    padding: 8px 16px; background: transparent; border: none;
+    cursor: pointer; font-size: 14px; font-weight: 600; color: var(--muted);
+    border-bottom: 2px solid transparent;
+  }
+  .tab.active { color: var(--primary); border-bottom-color: var(--primary); }
+  .panel { display: none; }
+  .panel.active { display: block; }
+  button.primary {
+    background: var(--primary); color: white; border: none;
+    padding: 10px 20px; border-radius: 8px; font-size: 14px;
+    font-weight: 600; cursor: pointer; margin-top: 12px;
+  }
+  button.primary:hover { background: var(--primary-h); }
+  button.primary:disabled { background: #9ca3af; cursor: not-allowed; }
+  .toggle-row {
+    display: flex; gap: 14px; flex-wrap: wrap;
+    align-items: center; margin-top: 10px;
+  }
+  .toggle-row label { display: inline; margin: 0; font-weight: 500; }
+
+  #loading { display: none; font-weight: 600; color: var(--muted); margin-top: 12px; }
+  #result { display: none; }
+
+  .verdict {
+    display: flex; align-items: center; gap: 14px;
+    padding: 14px 18px; border-radius: 8px; margin-bottom: 16px;
+  }
+  .verdict.fake-classic { background: #fef2f2; border: 1px solid #fecaca; }
+  .verdict.fake-modern  { background: var(--purple-bg); border: 1px solid #ddd6fe; }
+  .verdict.real         { background: #f0fdf4; border: 1px solid #bbf7d0; }
+  .verdict h2 { margin: 0; font-size: 22px; }
+  .verdict.fake-classic h2 { color: var(--red); }
+  .verdict.fake-modern  h2 { color: var(--purple); }
+  .verdict.real         h2 { color: var(--green); }
+  .verdict .pct { font-size: 28px; font-weight: 800; }
+  .badge-cat {
+    display: inline-block; padding: 3px 10px; border-radius: 12px;
+    font-size: 12px; font-weight: 600; margin-left: 8px;
+  }
+  .badge-cat.classic { background: #fee2e2; color: var(--red); }
+  .badge-cat.modern  { background: #ede9fe; color: var(--purple); }
+  .badge-cat.neither { background: #d1fae5; color: var(--green); }
+
+  .stage-grid {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 16px;
+  }
+  @media (max-width: 800px) { .stage-grid { grid-template-columns: 1fr; } }
+  .stage-card {
+    border: 1px solid var(--border); border-radius: 10px; padding: 16px;
+  }
+  .stage-card h3 { margin: 0 0 4px; font-size: 16px; }
+  .stage-card .stage-sub { font-size: 12px; color: var(--muted); margin-bottom: 12px; }
+  .stage-card.triggered { border-color: var(--warn); background: #fffbeb; }
+  .stage-card.triggered.classic { border-color: var(--red); background: #fef2f2; }
+  .stage-card.triggered.modern  { border-color: var(--purple); background: var(--purple-bg); }
+
+  .stage-prob {
+    display: flex; align-items: baseline; gap: 8px; margin-bottom: 8px;
+  }
+  .stage-prob .num { font-size: 28px; font-weight: 800; font-variant-numeric: tabular-nums; }
+  .stage-prob .thr { font-size: 12px; color: var(--muted); }
+  .stage-flag {
+    display: inline-block; padding: 2px 8px; border-radius: 4px;
+    font-size: 11px; font-weight: 600; margin-left: 6px;
+  }
+  .stage-flag.over  { background: var(--red); color: white; }
+  .stage-flag.over.modern { background: var(--purple); }
+  .stage-flag.under { background: #d1fae5; color: var(--green); }
+  .stage-flag.skip  { background: #e5e7eb; color: var(--muted); }
+
+  .bars { margin-top: 6px; }
+  .bar-row { display: flex; align-items: center; gap: 10px; margin-bottom: 6px; font-size: 13px; }
+  .bar-row .label { width: 44px; font-weight: 600; }
+  .bar-row .bar { flex: 1; height: 14px; background: #f3f4f6; border-radius: 4px; overflow: hidden; }
+  .bar-row .bar > span { display: block; height: 100%; }
+  .bar-fake { background: var(--red); }
+  .bar-real { background: var(--green); }
+  .bar-modern { background: var(--purple); }
+  .bar-row .val { width: 56px; text-align: right; font-variant-numeric: tabular-nums; font-size: 12px; }
+
+  .heatmap-grid {
+    display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px;
+    margin-top: 14px;
+  }
+  @media (min-width: 1000px) { .heatmap-grid { grid-template-columns: repeat(4, 1fr); } }
+  .heatmap-card { text-align: center; }
+  .heatmap-card img { width: 100%; height: auto; border-radius: 8px; border: 1px solid var(--border); }
+  .heatmap-card .name { font-size: 13px; font-weight: 600; margin-top: 6px; color: var(--text); }
+  .heatmap-card .desc { font-size: 11px; color: var(--muted); }
+
+  .se-bar {
+    display: flex; height: 22px; border-radius: 6px; overflow: hidden;
+    border: 1px solid var(--border); margin-top: 8px;
+  }
+  .se-bar > div {
+    display: flex; align-items: center; justify-content: center;
+    color: white; font-size: 12px; font-weight: 600;
+  }
+  .se-rgb  { background: #2563eb; }
+  .se-freq { background: #f59e0b; }
+
+  table.kv { width: 100%; border-collapse: collapse; font-size: 14px; }
+  table.kv td { padding: 7px 10px; border-bottom: 1px solid var(--border); }
+  table.kv td:first-child { color: var(--muted); width: 35%; }
+
+  .explanation {
+    background: #fffbeb; border-left: 3px solid var(--warn);
+    padding: 12px 14px; border-radius: 4px; font-size: 14px;
+    line-height: 1.6; white-space: pre-wrap; margin-top: 10px;
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<div class="card">
+  <h1>🐌 딥페이크 탐지 v3 — 2-Stage Cascade</h1>
+  <div class="sub">
+    Stage 1: v15 + v16 + v17 (SNS 증강 모델)
+    &nbsp;·&nbsp; Stage 2: v20 + v19 + v18 (DF40 Specialist)
+  </div>
+
+  <label>API Base URL</label>
+  <input type="text" id="apiBase" value="http://localhost:60006">
+
+  <div class="tabs">
+    <button class="tab active" onclick="switchTab('url')">🔗 S3 URL (운영용)</button>
+    <button class="tab"        onclick="switchTab('file')">📁 영상 업로드</button>
+    <button class="tab"        onclick="switchTab('image')">🖼️ 이미지 업로드</button>
+  </div>
+
+  <div id="panel-url" class="panel active">
+    <label>비디오 URL (S3 / HTTPS)</label>
+    <input type="url" id="videoUrl" placeholder="https://my-bucket.s3.ap-northeast-2.amazonaws.com/test.mp4?...">
+  </div>
+  <div id="panel-file" class="panel">
+    <label>로컬 비디오 파일</label>
+    <input type="file" id="videoFile" accept="video/mp4,video/quicktime,.mov,video/avi,video/webm">
+  </div>
+  <div id="panel-image" class="panel">
+    <label>이미지 파일 (JPG / PNG / WEBP)</label>
+    <input type="file" id="imageFile" accept="image/jpeg,image/png,image/webp">
+    <div id="imagePreview" style="margin-top:10px; display:none">
+      <img id="previewImg" style="max-height:200px; border-radius:8px; border:1px solid var(--border)">
+    </div>
+  </div>
+
+  <div class="toggle-row">
+    <input type="checkbox" id="returnXai" checked>
+    <label for="returnXai">XAI (Grad-CAM heatmap + 영역 분석) 포함</label>
+  </div>
+
+  <button class="primary" onclick="run()">🔍 분석 시작</button>
+  <div id="loading">⏳ 분석 중...</div>
+  <div id="error" class="err" style="display:none"></div>
+</div>
+
+<div id="result">
+  <div class="card">
+    <div id="verdict" class="verdict"></div>
+    <div id="explanation" class="explanation"></div>
+  </div>
+
+  <div class="card">
+    <h3 style="margin-top:0">Cascade 결과</h3>
+    <div class="stage-grid">
+      <div id="stage1Card" class="stage-card">
+        <h3>Stage 1 — 전통 딥페이크</h3>
+        <div class="stage-sub">SNS 증강 학습 · v15 + v16 + v17</div>
+        <div class="stage-prob">
+          <span class="num" id="s1Prob">-</span>
+          <span class="thr">/ thr <span id="s1Thr">-</span></span>
+          <span id="s1Flag" class="stage-flag"></span>
+        </div>
+        <div id="s1Bars" class="bars"></div>
+      </div>
+      <div id="stage2Card" class="stage-card">
+        <h3>Stage 2 — 최신 생성형 (DF40)</h3>
+        <div class="stage-sub" id="s2Sub">DF40 specialist · v20 + v19 + v18</div>
+        <div class="stage-prob">
+          <span class="num" id="s2Prob">-</span>
+          <span class="thr">/ thr <span id="s2Thr">-</span></span>
+          <span id="s2Flag" class="stage-flag"></span>
+        </div>
+        <div id="s2Bars" class="bars"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h3 style="margin-top:0" id="seTitle">SE-attention</h3>
+    <div id="seBar" class="se-bar"></div>
+    <table class="kv" style="margin-top:10px">
+      <tr><td>RGB share</td>  <td id="seRgb"></td></tr>
+      <tr><td>Freq share</td> <td id="seFreq"></td></tr>
+    </table>
+  </div>
+
+  <div class="card">
+    <h3 style="margin-top:0">Grad-CAM Heatmap <span id="camStageBadge" style="font-size:0.7em; padding:2px 8px; border-radius:8px; background:#333"></span> (의심 프레임 #<span id="suspectIdx">-</span>)</h3>
+    <div id="camStageNote" class="sub"></div>
+    <div id="heatmaps" class="heatmap-grid"></div>
+  </div>
+
+  <div class="card">
+    <h3 style="margin-top:0">모델별 주목 영역 (Top-3, 3×3 그리드)</h3>
+    <table class="kv" id="regionsTbl"></table>
+  </div>
+
+  <div class="card">
+    <table class="kv" id="metaTbl"></table>
+    <details>
+      <summary>📦 Raw response (개발자용)</summary>
+      <pre class="json" id="raw" style="background:#0f172a; color:#e2e8f0; padding:12px; border-radius:6px; font-size:11px; overflow-x:auto;"></pre>
+    </details>
+  </div>
+</div>
+
+</div>
+
+<script>
+let mode = 'url';
+function switchTab(m) {
+  mode = m;
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+  event.target.classList.add('active');
+  document.getElementById('panel-' + m).classList.add('active');
+}
+
+document.getElementById('imageFile').addEventListener('change', function() {
+  const f = this.files[0];
+  if (!f) return;
+  document.getElementById('previewImg').src = URL.createObjectURL(f);
+  document.getElementById('imagePreview').style.display = 'block';
+});
+
+async function run() {
+  const base = document.getElementById('apiBase').value.replace(/\/$/, '');
+  const returnXai = document.getElementById('returnXai').checked;
+  const loading = document.getElementById('loading');
+  const result = document.getElementById('result');
+  const errEl = document.getElementById('error');
+
+  errEl.style.display = 'none';
+  result.style.display = 'none';
+  loading.style.display = 'block';
+
+  try {
+    let resp;
+    if (mode === 'url') {
+      const url = document.getElementById('videoUrl').value.trim();
+      resp = await fetch(base + '/analyze', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ video_url: url })
+      });
+    } else {
+      const f = mode === 'file' ? document.getElementById('videoFile').files[0] : document.getElementById('imageFile').files[0];
+      const buf = await f.arrayBuffer();
+      resp = await fetch(base + (mode === 'file' ? '/analyze_local' : '/analyze_image'), {
+        method: 'POST',
+        headers: { 'X-Return-XAI': returnXai ? '1' : '0' },
+        body: buf
+      });
+    }
+    const data = await resp.json();
+    render(data);
+  } catch (e) {
+    errEl.textContent = '실패: ' + e.message;
+    errEl.style.display = 'block';
+  } finally {
+    loading.style.display = 'none';
+  }
+}
+
+function fmtPct(p) { return (p == null || isNaN(p)) ? '-' : (p * 100).toFixed(1) + '%'; }
+
+function renderBars(containerId, modelsObj, modelKeys, barClass) {
+  const el = document.getElementById(containerId);
+  el.innerHTML = '';
+  if (!modelsObj) { el.innerHTML = '정보 없음'; return; }
+  for (const k of modelKeys) {
+    const p = modelsObj[k];
+    const valStr = p != null ? (p*100).toFixed(1) + '%' : 'N/A';
+    const width = p != null ? (p*100).toFixed(1) + '%' : '0%';
+    const cls = p >= 0.5 ? barClass : 'bar-real';
+    el.innerHTML += `
+      <div class="bar-row">
+        <div class="label">${k}</div>
+        <div class="bar"><span class="${cls}" style="width:${width}"></span></div>
+        <div class="val">${valStr}</div>
+      </div>`;
+  }
+}
+
+function render(d) {
+  const v = document.getElementById('verdict');
+  const cat = d.category || 'neither';
+  const isFake = d.decision === 'FAKE';
+  let title = isFake ? (cat==='classic_deepfake'?'🚨 FAKE — 전통 딥페이크':'🚨 FAKE — 최신 생성형') : '✅ REAL';
+  v.className = 'verdict ' + (cat==='classic_deepfake'?'fake-classic':(cat==='modern_generative'?'fake-modern':'real'));
+  
+  const mainProb = isFake ? (cat==='classic_deepfake'?d.stage1.prob:d.stage2.prob) : Math.max(d.stage1.prob, d.stage2.prob);
+  v.innerHTML = `<span class="pct">${fmtPct(mainProb)}</span><h2>${title}</h2>`;
+
+  // Explanation 생성
+  const exp = document.getElementById('explanation');
+
+  // T2V 의심 로직 (v20 >= 65% && v19 < 35%)
+  const v19_score = d.stage2?.models?.v19;
+  const v20_score = d.stage2?.models?.v20;
+  let is_t2v_suspected = false;
+  if (v20_score != null && v19_score != null && v20_score >= 0.65 && v19_score < 0.35) {
+      is_t2v_suspected = true;
+  }
+
+  if (is_t2v_suspected) {
+    v.className = 'verdict fake-modern';
+    v.innerHTML = `<span class="pct">🚨주의</span><h2>🚨 FAKE — Text-to-Video 의심</h2>`;
+    exp.innerHTML = "<strong>[T2V 특수 탐지]</strong> 모델 간 극단적인 의견 충돌이 감지되었습니다. 픽셀(RGB) 단위에서는 완벽해 보이나(v19 점수 낮음), 주파수 융합 분석(v20 점수 높음)에서 시공간적 결함이 강하게 포착되었습니다. 최신 Text-to-Video 생성형 영상일 확률이 매우 높습니다.";
+    exp.style.borderLeftColor = "#7c3aed";
+    exp.style.background = "#f5f3ff";
+  } else if (cat === 'classic_deepfake') {
+    exp.textContent = "[Stage 1 탐지] SNS 증강 데이터로 학습된 전통적 딥페이크 탐지 모델에서 높은 변조 확률이 감지되었습니다. 얼굴 스왑이나 GAN 기반의 변조 흔적이 뚜렷합니다.";
+  } else if (cat === 'modern_generative') {
+    exp.textContent = "[Stage 2 탐지] 전통적 모델은 통과했으나, 최신 생성형(DF40) 전용 모델에서 변조 흔적이 발견되었습니다. AI 고도화 기술이 적용된 정밀한 딥페이크일 가능성이 높습니다.";
+  } else {
+    exp.textContent = "모든 탐지 단계에서 변조 흔적이 임계값 미만으로 확인되었습니다. 자연스러운 인물 영상(Real)으로 판단됩니다.";
+  }
+
+  // Thresholds
+  document.getElementById('s1Prob').textContent = fmtPct(d.stage1.prob);
+  document.getElementById('s1Thr').textContent  = fmtPct(d.stage1.threshold);
+  document.getElementById('s2Prob').textContent = d.stage2.models_loaded?.length ? fmtPct(d.stage2.prob) : 'skip';
+  document.getElementById('s2Thr').textContent  = fmtPct(d.stage2.threshold);
+
+  // Flags & Trigger status
+  const s1Flag = document.getElementById('s1Flag');
+  const s1Card = document.getElementById('stage1Card');
+  s1Card.classList.remove('triggered', 'classic', 'modern');
+  if (d.stage1.prob >= d.stage1.threshold) {
+    s1Flag.textContent = '≥ thr → FAKE (classic)';
+    s1Flag.className = 'stage-flag over';
+    s1Card.classList.add('triggered', 'classic');
+  } else {
+    s1Flag.textContent = '< thr → pass';
+    s1Flag.className = 'stage-flag under';
+  }
+
+  const s2Flag = document.getElementById('s2Flag');
+  const s2Card = document.getElementById('stage2Card');
+  s2Card.classList.remove('triggered', 'classic', 'modern');
+  if (!d.stage2.models_loaded?.length) {
+    s2Flag.textContent = 'skip'; s2Flag.className = 'stage-flag skip';
+  } else if (cat === 'classic_deepfake') {
+    s2Flag.textContent = 'Stage 1 hit'; s2Flag.className = 'stage-flag skip';
+  } else if (d.stage2.prob >= d.stage2.threshold) {
+    s2Flag.textContent = '≥ thr → FAKE (modern)';
+    s2Flag.className = 'stage-flag over modern';
+    s2Card.classList.add('triggered', 'modern');
+  } else {
+    s2Flag.textContent = '< thr → REAL';
+    s2Flag.className = 'stage-flag under';
+  }
+
+  renderBars('s1Bars', d.stage1.models, ['v15', 'v16', 'v17'], 'bar-fake');
+  renderBars('s2Bars', d.stage2.models, ['v20', 'v19', 'v18'], 'bar-modern');
+
+  const ev = d.evidence || {};
+  const se = ev.se_attention;
+  if (se) {
+    const r = (se.rgb_share*100).toFixed(1), f = (se.freq_share*100).toFixed(1);
+    document.getElementById('seBar').innerHTML = `<div class="se-rgb" style="width:${r}%">RGB ${r}%</div><div class="se-freq" style="width:${f}%">Freq ${f}%</div>`;
+    document.getElementById('seRgb').textContent = r+'%'; document.getElementById('seFreq').textContent = f+'%';
+  }
+
+  document.getElementById('suspectIdx').textContent = ev.suspect_frame_idx ?? '-';
+  const hm = document.getElementById('heatmaps'); hm.innerHTML = '';
+  const camBadge = document.getElementById('camStageBadge');
+  if (ev.heatmaps) {
+    const xStage = ev.xai_stage ?? 1;
+    camBadge.textContent = 'Stage ' + xStage;
+    camBadge.style.background = xStage === 2 ? '#7e2bd1' : '#c33';
+    const cards = xStage === 2 
+      ? [{k:'v20_rgb',n:'v20 RGB'},{k:'v20_freq',n:'v20 Freq'},{k:'v19',n:'v19 (RGB)'},{k:'v18',n:'v18 (Freq)'}]
+      : [{k:'v15',n:'v15 (RGB)'},{k:'v16_rgb',n:'v16 RGB'},{k:'v16_freq',n:'v16 Freq'},{k:'v17',n:'v17 (Freq)'}];
+    for (const c of cards) {
+      if (ev.heatmaps[c.k]) hm.innerHTML += `<div class="heatmap-card"><img src="${ev.heatmaps[c.k]}"><div class="name">${c.n}</div></div>`;
+    }
+  }
+
+  const rt = document.getElementById('regionsTbl'); rt.innerHTML = '';
+  if (ev.regions) {
+    for (const k of Object.keys(ev.regions)) {
+      const txt = ev.regions[k].map(r => `${r.region} (${(r.ratio*100).toFixed(1)}%)`).join(' · ');
+      rt.innerHTML += `<tr><td>${k}</td><td>${txt}</td></tr>`;
+    }
+  }
+
+  document.getElementById('raw').textContent = JSON.stringify(d, null, 2);
+  document.getElementById('result').style.display = 'block';
+}
+</script>
+</body>
+</html>

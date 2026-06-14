@@ -1,0 +1,424 @@
+/* ── Shared auth page styles ── */
+
+.page {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background: var(--surface-subtle);
+}
+
+.pageWhiteBg {
+  composes: page;
+  background: var(--bg-white);
+}
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 24px 40px;
+}
+
+.headerBordered {
+  composes: header;
+  background: var(--bg-white);
+  border-bottom: 1px solid var(--border-light);
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  z-index: 100;
+}
+
+.logo {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 1.25rem;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  color: var(--text-main);
+  text-decoration: none;
+}
+
+.logo svg {
+  color: var(--accent-blue);
+}
+
+.main {
+  flex: 1;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 40px 20px;
+}
+
+.mainFixed {
+  composes: main;
+  padding: 120px 24px 60px;
+}
+
+.card {
+  width: 100%;
+  max-width: 480px;
+  background: var(--bg-white);
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-md);
+  padding: 48px;
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.02);
+}
+
+.cardWide {
+  composes: card;
+  max-width: 560px;
+  padding: 64px 48px;
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.03);
+  text-align: center;
+}
+
+.cardHeader {
+  text-align: center;
+  margin-bottom: 32px;
+}
+
+.title {
+  font-size: 1.75rem;
+  font-weight: 600;
+  letter-spacing: -0.03em;
+  margin-bottom: 8px;
+}
+
+.subtitle {
+  color: var(--text-muted);
+  font-size: 0.9375rem;
+}
+
+/* ── Form elements ── */
+.formGroup {
+  margin-bottom: 20px;
+  text-align: left;
+}
+
+.formGroupLg {
+  margin-bottom: 24px;
+  text-align: left;
+}
+
+.formLabel {
+  display: block;
+  font-size: 0.875rem;
+  font-weight: 500;
+  margin-bottom: 8px;
+  color: var(--text-main);
+}
+
+.formInput {
+  width: 100%;
+  padding: 12px 16px;
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-sm);
+  font-size: 1rem;
+  font-family: var(--font-main);
+  transition: all 0.2s;
+  background: var(--surface-subtle);
+  color: var(--text-main);
+  outline: none;
+}
+
+.formInput:focus {
+  border-color: var(--accent-blue);
+  background: var(--bg-white);
+  box-shadow: 0 0 0 3px rgba(0, 3, 255, 0.1);
+}
+
+.formInput::placeholder {
+  color: #bdbdbd;
+}
+
+.inputRow {
+  display: flex;
+  gap: 12px;
+}
+
+.inputWrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-sm);
+  background: var(--bg-white);
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.inputWrapper:focus-within {
+  border-color: var(--accent-blue);
+  box-shadow: 0 0 0 3px rgba(0, 3, 255, 0.1);
+}
+
+.inputWrapper input {
+  width: 100%;
+  border: none;
+  background: transparent;
+  padding: 12px 16px;
+  font-size: 0.9375rem;
+  color: var(--text-main);
+  outline: none;
+  font-family: var(--font-main);
+}
+
+.inputWrapper input::placeholder {
+  color: #bdbdbd;
+}
+
+/* ── Buttons ── */
+.btnSubmit {
+  width: 100%;
+  background: linear-gradient(135deg, var(--accent-blue), #2b2eff);
+  color: white;
+  border: none;
+  padding: 14px;
+  border-radius: var(--radius-pill);
+  font-weight: 500;
+  font-size: 1rem;
+  cursor: pointer;
+  letter-spacing: 0.02em;
+  transition: transform 0.2s, box-shadow 0.2s;
+  font-family: var(--font-main);
+  margin-top: 16px;
+}
+
+.btnSubmitSm {
+  composes: btnSubmit;
+  border-radius: var(--radius-sm);
+  font-size: 0.9375rem;
+}
+
+.btnSubmit:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(0, 3, 255, 0.2);
+}
+
+.btnSecondary {
+  background: var(--surface-subtle);
+  color: var(--text-main);
+  border: 1px solid var(--border-light);
+  padding: 0 20px;
+  border-radius: var(--radius-sm);
+  font-weight: 500;
+  font-size: 0.875rem;
+  cursor: pointer;
+  transition: all 0.2s;
+  white-space: nowrap;
+  font-family: var(--font-main);
+}
+
+.btnSecondary:hover {
+  background: var(--border-light);
+}
+
+.btnSendCode {
+  background: var(--surface-subtle);
+  border: none;
+  border-left: 1px solid var(--border-light);
+  padding: 0 16px;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--text-main);
+  cursor: pointer;
+  transition: background 0.2s;
+  border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+  white-space: nowrap;
+  font-family: var(--font-main);
+}
+
+.btnSendCode:hover {
+  background: #eaeaea;
+}
+
+.btnOutline {
+  background: transparent;
+  color: var(--text-main);
+  border: 1px solid var(--border-light);
+  padding: 12px 32px;
+  border-radius: var(--radius-pill);
+  font-weight: 500;
+  font-size: 1rem;
+  cursor: pointer;
+  transition: all 0.2s;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  font-family: var(--font-main);
+}
+
+.btnOutline:hover {
+  border-color: var(--text-main);
+  background: var(--surface-subtle);
+}
+
+/* ── Checkbox ── */
+.checkboxGroup {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  margin-top: 24px;
+  margin-bottom: 24px;
+}
+
+.checkboxGroup input[type='checkbox'] {
+  appearance: none;
+  -webkit-appearance: none;
+  width: 20px;
+  height: 20px;
+  border: 1.5px solid var(--border-light);
+  border-radius: 4px;
+  cursor: pointer;
+  position: relative;
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.checkboxGroup input[type='checkbox']:checked {
+  background: var(--accent-blue);
+  border-color: var(--accent-blue);
+}
+
+.checkboxGroup input[type='checkbox']:checked::after {
+  content: '';
+  position: absolute;
+  left: 5px;
+  top: 2px;
+  width: 5px;
+  height: 10px;
+  border: solid white;
+  border-width: 0 2px 2px 0;
+  transform: rotate(45deg);
+}
+
+.checkboxLabel {
+  font-size: 0.875rem;
+  color: var(--text-muted);
+  line-height: 1.5;
+  cursor: pointer;
+}
+
+.checkboxLabel a {
+  color: var(--accent-blue);
+  text-decoration: none;
+  font-weight: 500;
+}
+
+/* ── Footer links ── */
+.authFooter {
+  margin-top: 24px;
+  text-align: center;
+  font-size: 0.875rem;
+  color: var(--text-muted);
+}
+
+.authFooter a {
+  color: var(--text-main);
+  font-weight: 500;
+  text-decoration: none;
+  transition: color 0.2s;
+}
+
+.authFooter a:hover {
+  color: var(--accent-blue);
+}
+
+.authFooterLinks {
+  composes: authFooter;
+  margin-top: 32px;
+}
+
+.authFooterLinks a {
+  color: var(--text-muted);
+  margin: 0 12px;
+}
+
+.authFooterLinks a:hover {
+  color: var(--text-main);
+}
+
+.divider {
+  color: var(--border-light);
+}
+
+.simpleFooter {
+  text-align: center;
+  padding: 24px 0;
+  font-size: 0.75rem;
+  color: var(--text-muted);
+}
+
+.simpleFooter a {
+  color: var(--text-muted);
+  margin: 0 8px;
+  font-weight: 400;
+  text-decoration: none;
+}
+
+/* ── Waitlist-specific ── */
+.iconWrapper {
+  width: 64px;
+  height: 64px;
+  background: rgba(0, 3, 255, 0.05);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 32px auto;
+  color: var(--accent-blue);
+}
+
+.desc {
+  font-size: 1.125rem;
+  color: var(--text-muted);
+  line-height: 1.6;
+  margin-bottom: 32px;
+}
+
+.noticeBox {
+  background: var(--surface-subtle);
+  border-radius: var(--radius-sm);
+  padding: 24px;
+  margin-bottom: 40px;
+  text-align: left;
+}
+
+.noticeTitle {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--text-main);
+  margin-bottom: 8px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.noticeTitle svg {
+  color: var(--text-muted);
+}
+
+.noticeText {
+  font-size: 0.875rem;
+  color: var(--text-muted);
+  line-height: 1.5;
+}
+
+@media (max-width: 768px) {
+  .header,
+  .headerBordered {
+    padding: 16px 24px;
+  }
+
+  .card,
+  .cardWide {
+    padding: 32px 24px;
+  }
+
+  .mainFixed {
+    padding: 100px 16px 40px;
+  }
+}

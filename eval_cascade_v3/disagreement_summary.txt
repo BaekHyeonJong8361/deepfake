@@ -1,0 +1,25 @@
+=== Stage 2 (v11/v12/v13) 다양성 분석 ===
+n_total = 17,859 | threshold = 0.7
+
+[Pearson 상관]
+  v11_vs_v12: 0.9859
+  v11_vs_v13: 0.9802
+  v12_vs_v13: 0.9810
+
+[해석 가이드]
+  r > 0.95: 사실상 같은 모델 — ensemble 이득 거의 없음
+  0.80 < r ≤ 0.95: 비슷하지만 ensemble 가치 있음
+  r ≤ 0.80: 다양성 충분 — ensemble 강력 추천
+
+[Binary disagreement @ thr=0.7]
+  v11_vs_v12: 1,082 (6.06%)
+  v11_vs_v13: 1,004 (5.62%)
+  v12_vs_v13: 830 (4.65%)
+
+[Fake recall — Stage 2 단독 vs ensemble]
+  only_v11            : catches=11,227 recall=0.9278
+  only_v12            : catches=11,469 recall=0.9478
+  only_v13            : catches=11,731 recall=0.9694
+  avg_ensemble        : catches=11,885 recall=0.9822
+  or_ensemble         : catches=12,042 recall=0.9951
+  and_ensemble        : catches=10,584 recall=0.8746

@@ -1,0 +1,73 @@
+# ===================================================================
+# 대용량 모델 가중치 / 데이터 (GitHub 100MB 제한 · 절대 커밋 금지)
+# ===================================================================
+*.pth
+*.pt
+*.h5
+*.ckpt
+*.onnx
+*.pb
+*.tar
+*.tar.gz
+*.tgz
+*.zip
+
+# 원본/전처리 데이터셋 및 중간 산출 디렉토리
+datasets/
+dfdc_raw/
+ff_data/
+ff_data.tar
+preprocessed_faces/
+test_inputs/
+ood_retest/
+final/
+df40_weights/
+saved_models/
+insta/
+insta_real/
+crawled_sns_images/
+xai_results/
+xai_test/
+
+# 루트의 대용량 split CSV (제출본은 submission/ 안에 정리되어 있음)
+/splits/
+/splits_v24/
+/splits_v35/
+
+# 중첩된 별도 git 저장소 (snails frontendRepo 클론)
+frontendRepo/
+
+# ===================================================================
+# 민감정보 (토큰/키/크레덴셜)
+# ===================================================================
+.env
+.env.*
+!.env.example
+.claude/
+logs/
+all_logs/
+
+# ===================================================================
+# 로그 / 임시 파일
+#   - 루트 잡(雜)로그는 제외, 단 제출본(submission/) 안의 학습로그는 보존
+# ===================================================================
+*.log
+!submission/**/*.log
+*.out
+tunnel.log
+
+# ===================================================================
+# 빌드 / 캐시 / 시스템 파일
+# ===================================================================
+node_modules/
+dist/
+build/
+__pycache__/
+*.pyc
+*.pyo
+.ipynb_checkpoints/
+.DS_Store
+._*
+*.egg-info/
+.vscode/
+.idea/

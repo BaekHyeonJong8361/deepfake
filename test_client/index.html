@@ -1,0 +1,316 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>딥페이크 탐지 v3 — 2-Stage Cascade (SNS Upgrade)</title>
+<style>
+  :root {
+    --bg: #f4f7f9; --card: #fff; --border: #e3e8ee;
+    --primary: #2563eb; --primary-h: #1d4ed8;
+    --red: #dc2626; --green: #16a34a; --warn: #f59e0b;
+    --purple: #7c3aed; --purple-bg: #f5f3ff;
+    --muted: #6b7280; --text: #1f2937;
+  }
+  * { box-sizing: border-box; }
+  body {
+    font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, sans-serif;
+    background: var(--bg); color: var(--text);
+    margin: 0; padding: 24px;
+  }
+  .wrap { max-width: 1100px; margin: 0 auto; }
+  .card {
+    background: var(--card); border: 1px solid var(--border);
+    border-radius: 12px; padding: 22px; margin-bottom: 18px;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.04);
+  }
+  h1 { margin: 0 0 8px; font-size: 22px; }
+  .sub { color: var(--muted); font-size: 13px; margin-bottom: 18px; }
+  label { display: block; font-weight: 600; margin: 12px 0 6px; font-size: 14px; }
+  input[type="text"], input[type="url"] {
+    width: 100%; padding: 10px 12px; border: 1px solid var(--border);
+    border-radius: 8px; font-size: 14px; font-family: ui-monospace, monospace;
+  }
+  .tabs {
+    display: flex; gap: 6px; margin-bottom: 16px;
+    border-bottom: 1px solid var(--border); padding-bottom: 0;
+  }
+  .tab {
+    padding: 8px 16px; background: transparent; border: none;
+    cursor: pointer; font-size: 14px; font-weight: 600; color: var(--muted);
+    border-bottom: 2px solid transparent;
+  }
+  .tab.active { color: var(--primary); border-bottom-color: var(--primary); }
+  .panel { display: none; }
+  .panel.active { display: block; }
+  button.primary {
+    background: var(--primary); color: white; border: none;
+    padding: 10px 20px; border-radius: 8px; font-size: 14px;
+    font-weight: 600; cursor: pointer; margin-top: 12px;
+  }
+  button.primary:hover { background: var(--primary-h); }
+  button.primary:disabled { background: #9ca3af; cursor: not-allowed; }
+  .toggle-row {
+    display: flex; gap: 14px; flex-wrap: wrap;
+    align-items: center; margin-top: 10px;
+  }
+  .toggle-row label { display: inline; margin: 0; font-weight: 500; }
+
+  #loading { display: none; font-weight: 600; color: var(--muted); margin-top: 12px; }
+  #result { display: none; }
+
+  .verdict {
+    display: flex; align-items: center; gap: 14px;
+    padding: 14px 18px; border-radius: 8px; margin-bottom: 16px;
+  }
+  .verdict.fake-classic { background: #fef2f2; border: 1px solid #fecaca; }
+  .verdict.fake-modern  { background: var(--purple-bg); border: 1px solid #ddd6fe; }
+  .verdict.real         { background: #f0fdf4; border: 1px solid #bbf7d0; }
+  .verdict h2 { margin: 0; font-size: 22px; }
+  .verdict.fake-classic h2 { color: var(--red); }
+  .verdict.fake-modern  h2 { color: var(--purple); }
+  .verdict.real         h2 { color: var(--green); }
+  .verdict .pct { font-size: 28px; font-weight: 800; }
+  .badge-cat {
+    display: inline-block; padding: 3px 10px; border-radius: 12px;
+    font-size: 12px; font-weight: 600; margin-left: 8px;
+  }
+  .badge-cat.classic { background: #fee2e2; color: var(--red); }
+  .badge-cat.modern  { background: #ede9fe; color: var(--purple); }
+  .badge-cat.neither { background: #d1fae5; color: var(--green); }
+
+  .stage-grid {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 16px;
+  }
+  @media (max-width: 800px) { .stage-grid { grid-template-columns: 1fr; } }
+  .stage-card {
+    border: 1px solid var(--border); border-radius: 10px; padding: 16px;
+  }
+  .stage-card h3 { margin: 0 0 4px; font-size: 16px; }
+  .stage-card .stage-sub { font-size: 12px; color: var(--muted); margin-bottom: 12px; }
+  .stage-card.triggered { border-color: var(--warn); background: #fffbeb; }
+  .stage-card.triggered.classic { border-color: var(--red); background: #fef2f2; }
+  .stage-card.triggered.modern  { border-color: var(--purple); background: var(--purple-bg); }
+
+  .stage-prob {
+    display: flex; align-items: baseline; gap: 8px; margin-bottom: 8px;
+  }
+  .stage-prob .num { font-size: 28px; font-weight: 800; font-variant-numeric: tabular-nums; }
+  .stage-prob .thr { font-size: 12px; color: var(--muted); }
+  .stage-flag {
+    display: inline-block; padding: 2px 8px; border-radius: 4px;
+    font-size: 11px; font-weight: 600; margin-left: 6px;
+  }
+  .stage-flag.over  { background: var(--red); color: white; }
+  .stage-flag.over.modern { background: var(--purple); }
+  .stage-flag.under { background: #d1fae5; color: var(--green); }
+  .stage-flag.skip  { background: #e5e7eb; color: var(--muted); }
+
+  .bars { margin-top: 6px; }
+  .bar-row { display: flex; align-items: center; gap: 10px; margin-bottom: 6px; font-size: 13px; }
+  .bar-row .label { width: 44px; font-weight: 600; }
+  .bar-row .bar { flex: 1; height: 14px; background: #f3f4f6; border-radius: 4px; overflow: hidden; }
+  .bar-row .bar > span { display: block; height: 100%; }
+  .bar-fake { background: var(--red); }
+  .bar-real { background: var(--green); }
+  .bar-modern { background: var(--purple); }
+  .bar-row .val { width: 56px; text-align: right; font-variant-numeric: tabular-nums; font-size: 12px; }
+
+  .heatmap-grid {
+    display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px;
+    margin-top: 14px;
+  }
+  @media (min-width: 1000px) { .heatmap-grid { grid-template-columns: repeat(4, 1fr); } }
+  .heatmap-card { text-align: center; }
+  .heatmap-card img { width: 100%; height: auto; border-radius: 8px; border: 1px solid var(--border); }
+  .heatmap-card .name { font-size: 13px; font-weight: 600; margin-top: 6px; color: var(--text); }
+
+  .se-bar {
+    display: flex; height: 22px; border-radius: 6px; overflow: hidden;
+    border: 1px solid var(--border); margin-top: 8px;
+  }
+  .se-bar > div {
+    display: flex; align-items: center; justify-content: center;
+    color: white; font-size: 12px; font-weight: 600;
+  }
+  .se-rgb  { background: #2563eb; }
+  .se-freq { background: #f59e0b; }
+
+  table.kv { width: 100%; border-collapse: collapse; font-size: 14px; }
+  table.kv td { padding: 7px 10px; border-bottom: 1px solid var(--border); }
+  table.kv td:first-child { color: var(--muted); width: 35%; }
+
+  .explanation {
+    background: #fffbeb; border-left: 3px solid var(--warn);
+    padding: 12px 14px; border-radius: 4px; font-size: 14px;
+    line-height: 1.6; white-space: pre-wrap;
+  }
+  pre.json {
+    background: #0f172a; color: #e2e8f0; padding: 12px;
+    border-radius: 6px; font-size: 11px; overflow-x: auto;
+    max-height: 300px;
+  }
+
+  .err {
+    background: #fef2f2; border: 1px solid #fecaca; color: var(--red);
+    padding: 10px 14px; border-radius: 6px; font-size: 14px; margin-top: 12px;
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+<div class="card">
+  <h1>🐌 딥페이크 탐지 v3 — 2-Stage Cascade (Full Upgrade)</h1>
+  <div class="sub">
+    Stage 1: v15 + v16 + v17 (SNS-aug) &nbsp;·&nbsp; Stage 2: v20 + v19 + v18 (DF40 Specialists)
+  </div>
+
+  <label>API Base URL</label>
+  <input type="text" id="apiBase" value="http://localhost:60006">
+
+  <div class="tabs">
+    <button class="tab active" onclick="switchTab('url')">🔗 S3 URL</button>
+    <button class="tab"        onclick="switchTab('file')">📁 영상</button>
+    <button class="tab"        onclick="switchTab('image')">🖼️ 이미지</button>
+  </div>
+
+  <div id="panel-url" class="panel active">
+    <label>비디오 URL</label>
+    <input type="url" id="videoUrl" placeholder="https://...">
+  </div>
+  <div id="panel-file" class="panel">
+    <input type="file" id="videoFile">
+  </div>
+  <div id="panel-image" class="panel">
+    <input type="file" id="imageFile">
+  </div>
+
+  <div class="toggle-row">
+    <input type="checkbox" id="returnXai" checked> <label for="returnXai">XAI 포함</label>
+  </div>
+
+  <button class="primary" onclick="run()">🔍 분석 시작</button>
+  <div id="loading">⏳ 분석 중...</div>
+  <div id="error" class="err" style="display:none"></div>
+</div>
+
+<div id="result">
+  <div class="card">
+    <div id="verdict" class="verdict"></div>
+    <div id="explanation" class="explanation"></div>
+  </div>
+
+  <div class="card">
+    <h3>Cascade 상세</h3>
+    <div class="stage-grid">
+      <div id="stage1Card" class="stage-card">
+        <h3>Stage 1</h3>
+        <div class="stage-sub">SNS 증강 모델 (v15-17)</div>
+        <div class="stage-prob"><span class="num" id="s1Prob">-</span></div>
+        <div id="s1Bars" class="bars"></div>
+      </div>
+      <div id="stage2Card" class="stage-card">
+        <h3>Stage 2</h3>
+        <div class="stage-sub">DF40 전문가 (v18-20)</div>
+        <div class="stage-prob"><span class="num" id="s2Prob">-</span></div>
+        <div id="s2Bars" class="bars"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h3>SE-attention</h3>
+    <div id="seBar" class="se-bar"></div>
+  </div>
+
+  <div class="card">
+    <h3>Grad-CAM (의심 프레임 #<span id="suspectIdx">-</span>)</h3>
+    <div id="heatmaps" class="heatmap-grid"></div>
+  </div>
+
+  <div class="card">
+    <h3>영역 분석</h3>
+    <table class="kv" id="regionsTbl"></table>
+  </div>
+
+  <div class="card">
+    <table class="kv" id="metaTbl"></table>
+    <details><summary>📦 Raw JSON</summary><pre class="json" id="raw"></pre></details>
+  </div>
+</div>
+</div>
+
+<script>
+let mode = 'url';
+function switchTab(m) {
+  mode = m;
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+  event.target.classList.add('active');
+  document.getElementById('panel-' + m).classList.add('active');
+}
+
+async function run() {
+  const base = document.getElementById('apiBase').value;
+  const xai = document.getElementById('returnXai').checked;
+  const loading = document.getElementById('loading');
+  loading.style.display = 'block';
+  document.getElementById('result').style.display = 'none';
+
+  try {
+    let resp;
+    if (mode === 'url') {
+      resp = await fetch(base + '/analyze', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({video_url:document.getElementById('videoUrl').value}) });
+    } else if (mode === 'file') {
+      resp = await fetch(base + '/analyze_local', { method:'POST', headers:{'X-Return-XAI':xai?'1':'0'}, body:await document.getElementById('videoFile').files[0].arrayBuffer() });
+    } else {
+      resp = await fetch(base + '/analyze_image', { method:'POST', headers:{'X-Return-XAI':xai?'1':'0'}, body:await document.getElementById('imageFile').files[0].arrayBuffer() });
+    }
+    render(await resp.json());
+  } catch (e) {
+    document.getElementById('error').textContent = e.message;
+    document.getElementById('error').style.display = 'block';
+  } finally { loading.style.display = 'none'; }
+}
+
+function render(d) {
+  const isFake = d.decision === 'FAKE';
+  const v = document.getElementById('verdict');
+  v.className = 'verdict ' + (d.category==='classic_deepfake'?'fake-classic':d.category==='modern_generative'?'fake-modern':'real');
+  v.innerHTML = '<h2>'+(isFake?'🚨 FAKE':'✅ REAL')+'</h2>';
+  
+  document.getElementById('s1Prob').textContent = (d.stage1.prob*100).toFixed(1)+'%';
+  const s1b = document.getElementById('s1Bars'); s1b.innerHTML = '';
+  Object.entries(d.stage1.models || {}).forEach(([k,p]) => {
+    s1b.innerHTML += '<div class="bar-row">'+k+'<div class="bar"><span style="width:'+(p*100)+'%; background:'+(p>=0.5?'var(--red)':'var(--green)')+'"></span></div></div>';
+  });
+
+  document.getElementById('s2Prob').textContent = (d.stage2.prob*100).toFixed(1)+'%';
+  const s2b = document.getElementById('s2Bars'); s2b.innerHTML = '';
+  Object.entries(d.stage2.models || {}).forEach(([k,p]) => {
+    s2b.innerHTML += '<div class="bar-row">'+k+'<div class="bar"><span style="width:'+(p*100)+'%; background:'+(p>=0.5?'var(--purple)':'var(--green)')+'"></span></div></div>';
+  });
+
+  const ev = d.evidence;
+  if (ev.se_attention) {
+    const r = (ev.se_attention.rgb_share*100).toFixed(1);
+    document.getElementById('seBar').innerHTML = '<div class="se-rgb" style="width:'+r+'%">RGB '+r+'%</div><div class="se-freq" style="flex:1">Freq '+(100-r).toFixed(1)+'%</div>';
+  }
+
+  const hm = document.getElementById('heatmaps'); hm.innerHTML = '';
+  Object.entries(ev.heatmaps || {}).forEach(([k,src]) => {
+    hm.innerHTML += '<div class="heatmap-card"><img src="'+src+'" style="width:100%"><div>'+k+'</div></div>';
+  });
+
+  const rt = document.getElementById('regionsTbl'); rt.innerHTML = '';
+  Object.entries(ev.regions || {}).forEach(([k,regs]) => {
+    rt.innerHTML += '<tr><td>'+k+'</td><td>'+regs.map(r=>r.region).join(', ')+'</td></tr>';
+  });
+
+  document.getElementById('metaTbl').innerHTML = '<tr><td>Request ID</td><td>'+d.request_id+'</td></tr><tr><td>Latency</td><td>'+d.latency_ms+'ms</td></tr>';
+  document.getElementById('raw').textContent = JSON.stringify(d, null, 2);
+  document.getElementById('result').style.display = 'block';
+}
+</script>
+</body>
+</html>
